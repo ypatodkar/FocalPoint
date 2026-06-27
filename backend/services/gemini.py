@@ -1,8 +1,5 @@
 import os
-from dotenv import load_dotenv
 import google.generativeai as genai
-
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../../.env'))
 
 _model = None
 

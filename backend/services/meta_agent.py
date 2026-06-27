@@ -1,11 +1,8 @@
 import os
 import json
 import google.generativeai as genai
-from dotenv import load_dotenv
 from db.users import update_user, add_prospective_flag
 from db.episodes import get_session_episodes
-
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '../../../.env'))
 
 # Antigravity = Google's hosted autonomous reasoning agent (Interactions API)
 # Falls back to Gemini Pro if Antigravity key/access not yet available
