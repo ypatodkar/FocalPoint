@@ -6,17 +6,17 @@
 <title>FocalPoint — Architecture</title>
 <style>
   :root {
-    --bg:      #0f0f10;
-    --surface: #1c1c1e;
-    --border:  #2e2e32;
-    --text:    #e3e3e3;
-    --muted:   #9aa0a6;
-    --blue:    #8ab4f8;
-    --purple:  #c58af9;
-    --green:   #81c995;
-    --yellow:  #fdd663;
-    --red:     #f28b82;
-    --orange:  #ffb74d;
+    --bg:      #f8f9fa;
+    --surface: #ffffff;
+    --border:  #e0e0e4;
+    --text:    #1a1a1a;
+    --muted:   #6b7280;
+    --blue:    #1a73e8;
+    --purple:  #7c3aed;
+    --green:   #16a34a;
+    --yellow:  #b45309;
+    --red:     #dc2626;
+    --orange:  #c2410c;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -170,8 +170,8 @@
 
   .memory-card .example {
     font-size: 11px;
-    color: var(--text);
-    background: #0f0f10;
+    color: #1a1a1a;
+    background: #f1f3f4;
     border-radius: 6px;
     padding: 6px 8px;
     font-family: monospace;
@@ -213,10 +213,10 @@
     font-weight: 600;
   }
 
-  .badge.green  { background: rgba(129,201,149,0.15); color: var(--green); }
-  .badge.yellow { background: rgba(253,214,99,0.15);  color: var(--yellow); }
-  .badge.red    { background: rgba(242,139,130,0.15); color: var(--red); }
-  .badge.orange { background: rgba(255,183,77,0.15);  color: var(--orange); }
+  .badge.green  { background: #dcfce7; color: var(--green); }
+  .badge.yellow { background: #fef3c7; color: var(--yellow); }
+  .badge.red    { background: #fee2e2; color: var(--red); }
+  .badge.orange { background: #ffedd5; color: var(--orange); }
 
   /* ── RSI loop ── */
   .rsi-box {
@@ -251,7 +251,7 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: rgba(197,138,249,0.15);
+    background: #ede9fe;
     border: 1px solid var(--purple);
     color: var(--purple);
     font-size: 11px;
@@ -268,23 +268,23 @@
 
   /* ── API contract ── */
   .api-box {
-    background: #0a0a0b;
+    background: #f1f3f4;
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 16px 20px;
     font-family: monospace;
     font-size: 12px;
-    color: var(--text);
+    color: #1a1a1a;
     margin-bottom: 16px;
     line-height: 1.7;
     white-space: pre;
     overflow-x: auto;
   }
 
-  .k { color: var(--blue); }
-  .v { color: var(--green); }
-  .s { color: var(--yellow); }
-  .c { color: var(--muted); }
+  .k { color: #1a73e8; }
+  .v { color: #16a34a; }
+  .s { color: #b45309; }
+  .c { color: #6b7280; }
 
   footer {
     margin-top: 48px;
