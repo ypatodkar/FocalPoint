@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FocalPoint — Architecture</title>
+<style>
+  :root {
+    --bg:      #0f0f10;
+    --surface: #1c1c1e;
+    --border:  #2e2e32;
+    --text:    #e3e3e3;
+    --muted:   #9aa0a6;
+    --blue:    #8ab4f8;
+    --purple:  #c58af9;
+    --green:   #81c995;
+    --yellow:  #fdd663;
+    --red:     #f28b82;
+    --orange:  #ffb74d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Google Sans', 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 40px 24px;
+  }
+
+  h1 {
+    font-size: 32px;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 48px;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* ── Main loop diagram ── */
+  .loop {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 56px;
+    flex-wrap: wrap;
+    gap: 0;
+  }
+
+  .loop-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    min-width: 160px;
+    text-align: center;
+    position: relative;
+  }
+
+  .loop-step .icon { font-size: 22px; margin-bottom: 6px; }
+  .loop-step .label { font-size: 13px; font-weight: 600; color: var(--text); }
+  .loop-step .sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  .loop-step.blue  { border-color: var(--blue);   }
+  .loop-step.purple{ border-color: var(--purple);  }
+  .loop-step.green { border-color: var(--green);   }
+  .loop-step.yellow{ border-color: var(--yellow);  }
+  .loop-step.red   { border-color: var(--red);     }
+  .loop-step.orange{ border-color: var(--orange);  }
+
+  .arrow {
+    color: var(--muted);
+    font-size: 20px;
+    padding: 0 8px;
+    flex-shrink: 0;
+  }
+
+  /* ── Two-column layout ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+  }
+
+  .card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card h3 .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .row:last-child { border-bottom: none; }
+  .row .key { color: var(--muted); }
+  .row .val { color: var(--text); font-weight: 500; font-family: monospace; font-size: 12px; }
+  .row .val.blue   { color: var(--blue); }
+  .row .val.purple { color: var(--purple); }
+  .row .val.green  { color: var(--green); }
+  .row .val.yellow { color: var(--yellow); }
+
+  /* ── Memory layers ── */
+  .memory-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .memory-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .memory-card .name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--blue);
+    margin-bottom: 4px;
+  }
+
+  .memory-card .what {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .memory-card .example {
+    font-size: 11px;
+    color: var(--text);
+    background: #0f0f10;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-family: monospace;
+    line-height: 1.5;
+  }
+
+  /* ── Reward table ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 40px;
+    font-size: 13px;
+  }
+
+  th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .badge.green  { background: rgba(129,201,149,0.15); color: var(--green); }
+  .badge.yellow { background: rgba(253,214,99,0.15);  color: var(--yellow); }
+  .badge.red    { background: rgba(242,139,130,0.15); color: var(--red); }
+  .badge.orange { background: rgba(255,183,77,0.15);  color: var(--orange); }
+
+  /* ── RSI loop ── */
+  .rsi-box {
+    background: var(--surface);
+    border: 1px solid var(--purple);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 40px;
+  }
+
+  .rsi-box h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--purple);
+    margin-bottom: 16px;
+  }
+
+  .rsi-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .rsi-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 13px;
+  }
+
+  .rsi-num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(197,138,249,0.15);
+    border: 1px solid var(--purple);
+    color: var(--purple);
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .rsi-text { color: var(--text); }
+  .rsi-text span { color: var(--purple); font-weight: 500; }
+
+  /* ── API contract ── */
+  .api-box {
+    background: #0a0a0b;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--text);
+    margin-bottom: 16px;
+    line-height: 1.7;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .k { color: var(--blue); }
+  .v { color: var(--green); }
+  .s { color: var(--yellow); }
+  .c { color: var(--muted); }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<h1>◎ FocalPoint</h1>
+<p class="subtitle">Architecture Overview · AIEWF 2026 Hackathon · Continual Learning Theme</p>
+
+<!-- ── MAIN LOOP ── -->
+<div class="section-label">The Turn-by-Turn Learning Loop</div>
+<div class="loop">
+  <div class="loop-step blue">
+    <div class="icon">👁️</div>
+    <div class="label">User Reads</div>
+    <div class="sub">WebGazer.js streams gaze (x, y, t)</div>
+  </div>
+  <div class="arrow">→</div>
+  <div class="loop-step yellow">
+    <div class="icon">🧠</div>
+    <div class="label">Gaze → Zones</div>
+    <div class="sub">Paragraphs tagged data-zone</div>
+  </div>
+  <div class="arrow">→</div>
+  <div class="loop-step red">
+    <div class="icon">📊</div>
+    <div class="label">Reward Signal</div>
+    <div class="sub">smooth / confusion / skim / skipped</div>
+  </div>
+  <div class="arrow">→</div>
+  <div class="loop-step orange">
+    <div class="icon">🗃️</div>
+    <div class="label">Memory Update</div>
+    <div class="sub">MongoDB: user profile + episode</div>
+  </div>
+  <div class="arrow">→</div>
+  <div class="loop-step green">
+    <div class="icon">⚙️</div>
+    <div class="label">Prompt Adapts</div>
+    <div class="sub">System prompt rebuilt from profile</div>
+  </div>
+  <div class="arrow">→</div>
+  <div class="loop-step purple">
+    <div class="icon">✨</div>
+    <div class="label">Gemini Flash</div>
+    <div class="sub">Calibrated response generated</div>
+  </div>
+</div>
+
+<!-- ── STACK ── -->
+<div class="section-label">Tech Stack</div>
+<div class="two-col" style="margin-bottom: 40px;">
+  <div class="card">
+    <h3><span class="dot" style="background:var(--blue)"></span>Frontend</h3>
+    <div class="row"><span class="key">Framework</span><span class="val blue">React + Vite</span></div>
+    <div class="row"><span class="key">Eye tracking</span><span class="val blue">WebGazer.js</span></div>
+    <div class="row"><span class="key">Chat UI</span><span class="val blue">Gemini-style dark theme</span></div>
+    <div class="row"><span class="key">Heatmap</span><span class="val blue">CSS rgba on data-zone divs</span></div>
+    <div class="row"><span class="key">Port</span><span class="val blue">localhost:5173</span></div>
+  </div>
+  <div class="card">
+    <h3><span class="dot" style="background:var(--purple)"></span>Backend</h3>
+    <div class="row"><span class="key">Framework</span><span class="val purple">FastAPI + Python</span></div>
+    <div class="row"><span class="key">Chat LLM</span><span class="val purple">Gemini 2.0 Flash</span></div>
+    <div class="row"><span class="key">RSI agent</span><span class="val purple">Antigravity (Interactions API)</span></div>
+    <div class="row"><span class="key">Database</span><span class="val purple">MongoDB Atlas</span></div>
+    <div class="row"><span class="key">LLM fallback</span><span class="val purple">DO GenAI (Llama 70B)</span></div>
+    <div class="row"><span class="key">Port</span><span class="val purple">localhost:8000</span></div>
+  </div>
+</div>
+
+<!-- ── MEMORY LAYERS ── -->
+<div class="section-label">Cognitive Architecture — 6 Memory Layers</div>
+<div class="memory-grid">
+  <div class="memory-card">
+    <div class="name">Sensory Memory</div>
+    <div class="what">Raw WebGazer stream, milliseconds lifetime</div>
+    <div class="example">{ x: 432, y: 210, t: 1719481234 }</div>
+  </div>
+  <div class="memory-card">
+    <div class="name">Working Memory</div>
+    <div class="what">Live session state — current turn context</div>
+    <div class="example">zoneLog: { zone_1: [t1,t2,t3] }
+lastResponseId: "resp_abc"</div>
+  </div>
+  <div class="memory-card">
+    <div class="name">Episodic Memory</div>
+    <div class="what">Per-turn logs stored in MongoDB episodes collection</div>
+    <div class="example">{ turn: 3, reward: -0.5,
+  flag: "confusion", zone: "zone_1" }</div>
+  </div>
+  <div class="memory-card">
+    <div class="name">Semantic Memory</div>
+    <div class="what">Persistent user profile in MongoDB users collection</div>
+    <div class="example">{ complexity: 4,
+  format: "bullets",
+  re_read_rate: 0.35 }</div>
+  </div>
+  <div class="memory-card">
+    <div class="name">Procedural Memory</div>
+    <div class="what">Adaptation rules baked into reward.py + prompt_builder.py</div>
+    <div class="example">confusion → simplify
+skipped  → shorten
+smooth   → maintain</div>
+  </div>
+  <div class="memory-card">
+    <div class="name">Prospective Memory</div>
+    <div class="what">Future topic flags written by Antigravity meta-agent</div>
+    <div class="example">{ topic: "recursion",
+  action: "use_analogy" }</div>
+  </div>
+</div>
+
+<!-- ── REWARD TABLE ── -->
+<div class="section-label">Implicit RLHF — Reward Function</div>
+<table>
+  <thead>
+    <tr>
+      <th>Gaze Behaviour</th>
+      <th>Flag</th>
+      <th>Reward</th>
+      <th>Next Response Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Smooth read-through to end</td>
+      <td><span class="badge green">smooth</span></td>
+      <td style="color:var(--green)">+1.0</td>
+      <td>Maintain or increase depth</td>
+    </tr>
+    <tr>
+      <td>Re-reads same zone 3+ times in 5s</td>
+      <td><span class="badge red">confusion</span></td>
+      <td style="color:var(--red)">−0.5</td>
+      <td>Simplify: bullets, plain language</td>
+    </tr>
+    <tr>
+      <td>Rapid back-and-forth in small area</td>
+      <td><span class="badge orange">skim</span></td>
+      <td style="color:var(--orange)">−0.3</td>
+      <td>Reduce density, more whitespace</td>
+    </tr>
+    <tr>
+      <td>Zone never visited</td>
+      <td><span class="badge yellow">skipped</span></td>
+      <td style="color:var(--yellow)">−0.2</td>
+      <td>Shorten response length</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ── RSI ── -->
+<div class="section-label">Recursive Self-Improvement — Session End Meta-Agent</div>
+<div class="rsi-box">
+  <h3>Antigravity (Google Interactions API) — runs once per session</h3>
+  <div class="rsi-steps">
+    <div class="rsi-step"><div class="rsi-num">1</div><div class="rsi-text">Session ends → <span>POST /session/end</span> triggered</div></div>
+    <div class="rsi-step"><div class="rsi-num">2</div><div class="rsi-text">All episodes from session fetched from MongoDB <span>(episodic memory)</span></div></div>
+    <div class="rsi-step"><div class="rsi-num">3</div><div class="rsi-text"><span>Antigravity agent</span> receives episodes + current user profile</div></div>
+    <div class="rsi-step"><div class="rsi-num">4</div><div class="rsi-text">Agent reasons deeply: pattern analysis across all turns, topics, formats</div></div>
+    <div class="rsi-step"><div class="rsi-num">5</div><div class="rsi-text">Returns <span>insights + updated profile + prospective flags</span> as JSON</div></div>
+    <div class="rsi-step"><div class="rsi-num">6</div><div class="rsi-text">MongoDB user profile upgraded — <span>next session starts smarter</span></div></div>
+  </div>
+</div>
+
+<!-- ── API CONTRACT ── -->
+<div class="section-label">API Contract — Single Endpoint</div>
+<div class="api-box"><span class="c">// POST http://localhost:8000/chat</span>
+
+<span class="c">// Request (frontend → backend)</span>
+{
+  <span class="k">"user_id"</span>:              <span class="s">"demo_user"</span>,
+  <span class="k">"message"</span>:              <span class="s">"explain recursion"</span>,
+  <span class="k">"previous_response_id"</span>: <span class="s">"resp_abc123"</span>,   <span class="c">// null on first turn</span>
+  <span class="k">"gaze_events"</span>: [
+    { <span class="k">"zone"</span>: <span class="s">"zone_0"</span>, <span class="k">"visits"</span>: <span class="v">1</span>, <span class="k">"flag"</span>: <span class="s">"smooth"</span>    },
+    { <span class="k">"zone"</span>: <span class="s">"zone_1"</span>, <span class="k">"visits"</span>: <span class="v">4</span>, <span class="k">"flag"</span>: <span class="s">"confusion"</span> }
+  ]
+}
+
+<span class="c">// Response (backend → frontend)</span>
+{
+  <span class="k">"response_id"</span>:  <span class="s">"resp_xyz456"</span>,
+  <span class="k">"text"</span>:         <span class="s">"Recursion is when a function..."</span>,
+  <span class="k">"reward"</span>:       <span class="v">-0.5</span>,
+  <span class="k">"user_profile"</span>: { <span class="k">"complexity_score"</span>: <span class="v">4</span>, <span class="k">"preferred_format"</span>: <span class="s">"bullets"</span> }
+}</div>
+
+<!-- ── PRIZE ANGLE ── -->
+<div class="section-label">Prize Strategy</div>
+<div class="two-col">
+  <div class="card">
+    <h3><span class="dot" style="background:var(--yellow)"></span>Main Prize — Continual Learning</h3>
+    <div class="row"><span class="key">Signal</span><span class="val">Implicit gaze data (no user effort)</span></div>
+    <div class="row"><span class="key">Loop</span><span class="val">Every turn adapts system prompt</span></div>
+    <div class="row"><span class="key">RSI</span><span class="val">Antigravity upgrades profile per session</span></div>
+    <div class="row"><span class="key">Memory</span><span class="val">Full 6-layer cognitive architecture</span></div>
+  </div>
+  <div class="card">
+    <h3><span class="dot" style="background:var(--green)"></span>Gemini $5,000 Prize</h3>
+    <div class="row"><span class="key">Feature used</span><span class="val green">Interactions API (Antigravity)</span></div>
+    <div class="row"><span class="key">Model</span><span class="val green">antigravity-preview-05-2026</span></div>
+    <div class="row"><span class="key">Chat model</span><span class="val green">gemini-2.0-flash</span></div>
+    <div class="row"><span class="key">Fallback</span><span class="val green">gemini-2.0-pro → DO Llama 70B</span></div>
+  </div>
+</div>
+
+<footer>
+  FocalPoint · Built at AIEWF 2026 Hackathon · github.com/ypatodkar/FocalPoint
+</footer>
+
+</body>
+</html>
