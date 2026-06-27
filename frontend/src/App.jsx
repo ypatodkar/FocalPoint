@@ -42,12 +42,25 @@ export default function App() {
     // Only map gaze if eye tracker is fully active and not currently waiting for a response
     if (!trackingActive || loading) return;
 
-    // Apply Exponential Moving Average (EMA) smoothing to reduce jitter
-    const alpha = 0.15; // Lower = smoother but slower to catch up
+    // Apply Dynamic Exponential Moving Average (EMA) smoothing to reduce jitter
+    let alpha = 0.4; // Base responsive alpha
     let sX = x;
     let sY = y;
     
     if (smoothedGaze.current.x !== null) {
+      const dx = x - smoothedGaze.current.x;
+      const dy = y - smoothedGaze.current.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      // Dynamic alpha based on saccade distance
+      if (dist < 20) {
+        alpha = 0.02; // ultra-sticky for micro-jitters
+      } else if (dist < 50) {
+        alpha = 0.1; // transition
+      } else {
+        alpha = 0.4; // snap quickly on saccades
+      }
+      
       sX = (alpha * x) + ((1 - alpha) * smoothedGaze.current.x);
       sY = (alpha * y) + ((1 - alpha) * smoothedGaze.current.y);
     }
@@ -61,15 +74,15 @@ export default function App() {
     if (zone !== readingState.current.line) {
       if (readingState.current.line) {
         const duration = currentTime - readingState.current.startTime;
-        const lineEl = document.querySelector(`[data-line-id="${readingState.current.line}"]`);
+        const lineEl = document.querySelector(`[data-word-id="${readingState.current.line}"]`);
         const text = lineEl ? lineEl.innerText : readingState.current.line;
-        console.log(`[Reading Tracker] Finished reading: "${text}" (Duration: ${Math.round(duration)}ms)`);
+        console.log(`[Reading Tracker] Finished reading word: "${text}" (Duration: ${Math.round(duration)}ms)`);
       }
       
       if (zone) {
-        const lineEl = document.querySelector(`[data-line-id="${zone}"]`);
+        const lineEl = document.querySelector(`[data-word-id="${zone}"]`);
         const text = lineEl ? lineEl.innerText : zone;
-        console.log(`[Reading Tracker] Currently reading: "${text}"`);
+        console.log(`[Reading Tracker] Currently reading word: "${text}"`);
       }
       
       readingState.current = { line: zone, startTime: currentTime };

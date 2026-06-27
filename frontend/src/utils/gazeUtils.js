@@ -11,9 +11,9 @@
 export function getZoneAtGaze(x, y) {
   const el = document.elementFromPoint(x, y);
   if (el) {
-    const lineEl = el.closest('.gaze-line');
+    const lineEl = el.closest('.gaze-word');
     if (lineEl) {
-      return lineEl.getAttribute('data-line-id');
+      return lineEl.getAttribute('data-word-id');
     }
     const zoneEl = el.closest('[data-zone]');
     if (zoneEl) {

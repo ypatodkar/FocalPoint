@@ -55,28 +55,30 @@ export default function ResponseDisplay({ text, responseId, zoneLog, heatmapEnab
               <>
                 <span style={{ color: 'var(--accent-secondary)', fontWeight: 'bold', fontSize: '1.1rem', lineHeight: '1' }}>•</span>
                 <span>
-                  {cleanText.match(/[^.!?]+[.!?]+/g) ? cleanText.match(/[^.!?]+[.!?]+/g).map((sentence, s_idx) => (
-                    <span key={s_idx} className="gaze-line" data-line-id={`${zoneId}_s${s_idx}`} style={{ 
-                      backgroundColor: (zoneLog[`${zoneId}_s${s_idx}`] || []).length > 0 && heatmapEnabled ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                  {cleanText.split(' ').map((word, w_idx) => (
+                    <span key={w_idx} className="gaze-word" data-word-id={`${zoneId}_w${w_idx}`} style={{ 
+                      backgroundColor: (zoneLog[`${zoneId}_w${w_idx}`] || []).length > 0 && heatmapEnabled ? 'rgba(16, 185, 129, 0.4)' : 'transparent',
                       borderRadius: '3px',
+                      padding: '0 1px',
                       transition: 'background 0.2s',
                     }}>
-                      {sentence}
+                      {word}{' '}
                     </span>
-                  )) : <span className="gaze-line" data-line-id={`${zoneId}_s0`}>{cleanText}</span>}
+                  ))}
                 </span>
               </>
             ) : (
               <span>
-                {cleanText.match(/[^.!?]+[.!?]+/g) ? cleanText.match(/[^.!?]+[.!?]+/g).map((sentence, s_idx) => (
-                  <span key={s_idx} className="gaze-line" data-line-id={`${zoneId}_s${s_idx}`} style={{ 
-                    backgroundColor: (zoneLog[`${zoneId}_s${s_idx}`] || []).length > 0 && heatmapEnabled ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                {cleanText.split(' ').map((word, w_idx) => (
+                  <span key={w_idx} className="gaze-word" data-word-id={`${zoneId}_w${w_idx}`} style={{ 
+                    backgroundColor: (zoneLog[`${zoneId}_w${w_idx}`] || []).length > 0 && heatmapEnabled ? 'rgba(16, 185, 129, 0.4)' : 'transparent',
                     borderRadius: '3px',
+                    padding: '0 1px',
                     transition: 'background 0.2s',
                   }}>
-                    {sentence}
+                    {word}{' '}
                   </span>
-                )) : <span className="gaze-line" data-line-id={`${zoneId}_s0`}>{cleanText}</span>}
+                ))}
               </span>
             )}
             
