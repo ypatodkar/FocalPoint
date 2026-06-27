@@ -7,7 +7,15 @@ from db.episodes import write_episode, get_recent_episodes
 from db.sessions import increment_turn
 from services.reward import compute_reward, update_profile_from_reward
 from services.prompt_builder import build_system_prompt
-from services.gemini import generate_response
+import services.gemini as gemini_svc
+import services.do_llm as do_svc
+
+def _generate(system_prompt: str, message: str) -> str:
+    try:
+        return gemini_svc.generate_response(system_prompt, message)
+    except Exception as e:
+        print(f"[chat] Gemini failed ({e}), falling back to DigitalOcean")
+        return do_svc.generate_response(system_prompt, message)
 
 router = APIRouter()
 
@@ -46,8 +54,7 @@ async def chat(req: ChatRequest):
     # Build adapted system prompt from current user profile
     system_prompt = build_system_prompt(user)
 
-    # Call Gemini
-    text        = generate_response(system_prompt, req.message)
+    text        = _generate(system_prompt, req.message)
     response_id = str(uuid.uuid4())
 
     return ChatResponse(
