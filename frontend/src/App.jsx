@@ -25,7 +25,7 @@ export default function App() {
   const [trackingActive, setTrackingActive] = useState(false);
   const [calibrationProgress, setCalibrationProgress] = useState(null);
   const [heatmapEnabled, setHeatmapEnabled] = useState(true);
-  const [useMock, setUseMock] = useState(true); // Default to standalone simulation mode for safe dev/demo
+  const [useMock, setUseMock] = useState(false); // Try backend first; api.js falls back to simulation if unreachable
   const [gazeTick, setGazeTick] = useState(0);
 
   const zoneLog = useRef({});
@@ -113,9 +113,15 @@ export default function App() {
     if (!zoneLog.current[zone]) {
       zoneLog.current[zone] = [];
     }
-    
-    // Log the gaze event timestamp
     zoneLog.current[zone].push(currentTime);
+
+    // Word-level IDs (zone_0_w5) must also roll up to their parent zone (zone_0)
+    // so computeGazeEvents can find them when building the backend payload
+    if (zone.includes('_w')) {
+      const parentZone = zone.split('_w')[0];
+      if (!zoneLog.current[parentZone]) zoneLog.current[parentZone] = [];
+      zoneLog.current[parentZone].push(currentTime);
+    }
     
     // Force UI re-render to update live highlights/heatmap
     // Throttle React state updates to avoid freezing
