@@ -415,6 +415,8 @@ html, body {
 /* ── Live gaze marker ── */
 .gaze-tracking-dot {
   position: fixed;
+  left: 0;
+  top: 0;
   width: 18px;
   height: 18px;
   margin-left: -9px;
@@ -427,4 +429,6 @@ html, body {
     0 0 18px rgba(20,184,166,0.72);
   pointer-events: none;
   z-index: 99998;
+  opacity: 0;
+  will-change: transform, opacity;
 }

@@ -8,6 +8,7 @@ export default function RightPanel({
   trackingActive,
   setTrackingActive,
   onGazeUpdate,
+  onTrackingPoint,
   setCalibrationProgress,
   calibrationProgress,
   messages,
@@ -100,6 +101,7 @@ export default function RightPanel({
         }}>
           <IrisTrackerController
             onGazeUpdate={onGazeUpdate}
+            onTrackingPoint={onTrackingPoint}
             setTrackingActive={setTrackingActive}
             setCalibrationProgress={setCalibrationProgress}
           />

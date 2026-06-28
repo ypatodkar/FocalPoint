@@ -131,6 +131,7 @@ function extractGazeFeatures(landmarks) {
 
 export default function IrisTrackerController({
   onGazeUpdate,
+  onTrackingPoint,
   setTrackingActive,
   setCalibrationProgress,
 }) {
@@ -141,7 +142,6 @@ export default function IrisTrackerController({
   const latestFeatures = useRef(null);
   const latestModel = useRef(null);
   const calibrationSamples = useRef([]);
-  const smoothedPoint = useRef(null);
   const running = useRef(false);
 
   const [loading, setLoading] = useState(false);
@@ -211,8 +211,8 @@ export default function IrisTrackerController({
       streamRef.current = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'user',
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 640 },
+          height: { ideal: 480 },
           frameRate: { ideal: 30, max: 30 },
         },
         audio: false,
@@ -228,12 +228,8 @@ export default function IrisTrackerController({
     if (!latestFeatures.current || !latestModel.current) return;
     const x = clamp(dot(latestFeatures.current, latestModel.current.coeffX), 0, window.innerWidth);
     const y = clamp(dot(latestFeatures.current, latestModel.current.coeffY), 0, window.innerHeight);
-    const previous = smoothedPoint.current;
-    const point = previous
-      ? { x: previous.x * 0.65 + x * 0.35, y: previous.y * 0.65 + y * 0.35 }
-      : { x, y };
-    smoothedPoint.current = point;
-    onGazeUpdate(point.x, point.y, performance.now());
+    onTrackingPoint(x, y);
+    onGazeUpdate(x, y, performance.now());
   };
 
   const runFrameLoop = async () => {
@@ -269,7 +265,6 @@ export default function IrisTrackerController({
     calibrationSamples.current = [];
     latestModel.current = null;
     localStorage.removeItem(MODEL_KEY);
-    smoothedPoint.current = null;
     setTrackingActive(false);
     setCalibrating(true);
     setCalibrationProgress(0);
@@ -306,7 +301,6 @@ export default function IrisTrackerController({
     }
 
     latestFeatures.current = null;
-    smoothedPoint.current = null;
     setTrackingActive(false);
     setCalibrating(false);
     setCalibrationProgress(null);

@@ -51,7 +51,6 @@ export default function App() {
   const [heatmapEnabled, setHeatmapEnabled] = useState(true);
   const [currentWordId, setCurrentWordId] = useState(null);
   const [gazeTick, setGazeTick] = useState(0);
-  const [gazePoint, setGazePoint] = useState(null);
 
   const activeSessionId = useRef(null);
   const sessionId = useRef(genId());
@@ -61,6 +60,7 @@ export default function App() {
   const smoothedGaze = useRef({ x: null, y: null });
   const chatEndRef = useRef(null);
   const textareaRef = useRef(null);
+  const gazeDotRef = useRef(null);
   const trackingActiveRef = useRef(false);
   const loadingRef = useRef(false);
   const dbLoaded = useRef(false);
@@ -68,7 +68,9 @@ export default function App() {
   useEffect(() => { trackingActiveRef.current = trackingActive; }, [trackingActive]);
   useEffect(() => { loadingRef.current = loading; }, [loading]);
   useEffect(() => {
-    if (!trackingActive) setGazePoint(null);
+    if (!trackingActive && gazeDotRef.current) {
+      gazeDotRef.current.style.opacity = '0';
+    }
   }, [trackingActive]);
 
   // Load sessions and profile from the FastAPI backend on mount
@@ -119,7 +121,6 @@ export default function App() {
       sY = alpha * medianY + (1 - alpha) * smoothedGaze.current.y;
     }
     smoothedGaze.current = { x: sX, y: sY };
-    setGazePoint({ x: sX, y: sY });
 
     const zone = getZoneAtGaze(sX, sY);
     if (!zone) {
@@ -168,8 +169,14 @@ export default function App() {
     smoothedGaze.current = { x: null, y: null };
     setGazeTick(0);
     setCurrentWordId(null);
-    setGazePoint(null);
+    if (gazeDotRef.current) gazeDotRef.current.style.opacity = '0';
   };
+
+  const handleTrackingPoint = useCallback((x, y) => {
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !gazeDotRef.current) return;
+    gazeDotRef.current.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    gazeDotRef.current.style.opacity = '1';
+  }, []);
 
   const startNewChat = async () => {
     const realMessages = messages.filter(m => m.responseId !== 'init');
@@ -545,6 +552,7 @@ export default function App() {
         trackingActive={trackingActive}
         setTrackingActive={setTrackingActive}
         onGazeUpdate={handleGazeUpdate}
+        onTrackingPoint={handleTrackingPoint}
         setCalibrationProgress={setCalibrationProgress}
         calibrationProgress={calibrationProgress}
         messages={messages}
@@ -556,10 +564,10 @@ export default function App() {
         gazeTick={gazeTick}
       />
 
-      {trackingActive && gazePoint && (
+      {trackingActive && (
         <div
+          ref={gazeDotRef}
           className="gaze-tracking-dot"
-          style={{ left: `${gazePoint.x}px`, top: `${gazePoint.y}px` }}
           aria-hidden="true"
         />
       )}
