@@ -13,7 +13,7 @@ def _get_client():
 def generate_response(system_prompt: str, message: str, history: list[dict] = None) -> str:
     _get_client()
     model = genai.GenerativeModel(
-        model_name=os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
+        model_name=os.getenv("GEMINI_MODEL", "gemini-3.5-flash"),
         system_instruction=system_prompt,
     )
 

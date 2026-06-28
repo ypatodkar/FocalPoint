@@ -27,8 +27,15 @@ def compute_reward(gaze_events: list[GazeEvent]) -> float | None:
     if not gaze_events:
         return None
 
-    total = sum(FLAG_SCORES.get(e.flag, 0) for e in gaze_events)
-    reward = total / len(gaze_events)
+    scores = []
+    for e in gaze_events:
+        base = FLAG_SCORES.get(e.flag, 0)
+        # Amplify confusion/skim signals by visit intensity — more re-reads = stronger penalty
+        if e.flag in ("confusion", "skim") and e.visits > 2:
+            base *= min(e.visits / 2.0, 3.0)
+        scores.append(base)
+
+    reward = sum(scores) / len(scores)
     return round(max(-1.0, min(1.0, reward)), 2)
 
 def update_profile_from_reward(
@@ -37,32 +44,44 @@ def update_profile_from_reward(
     updates = {}
     score = profile.get("complexity_score", 5)
 
-    if reward < 0:
-        updates["complexity_score"] = max(1, score - 1)
+    # Complexity: move by 0.5 steps and require consistent signal before crossing integer
+    # This prevents wild bouncing on a single turn
+    if reward < -0.3:
+        new_score = max(1, score - 1)
+        updates["complexity_score"] = new_score
+    elif reward > 0.5:
+        new_score = min(10, score + 1)
+        updates["complexity_score"] = new_score
+
+    # Format: only switch after a strong signal, not any negative reward
+    if reward < -0.4:
         updates["preferred_format"] = "bullets"
-        # Surface the topic that caused confusion so the prompt can address it
-        if message:
-            topic = _extract_topic(message)
-            if topic:
-                existing = profile.get("topics_to_simplify", [])
-                if topic not in existing:
-                    updates["topics_to_simplify"] = (existing + [topic])[-5:]
-    elif reward > 0:
-        updates["complexity_score"] = min(10, score + 1)
-        if score >= 6:
-            updates["preferred_format"] = "prose"
+    elif reward > 0.6 and score >= 6:
+        updates["preferred_format"] = "prose"
+
+    # reads_to_end: true only if no zones were skipped
+    skipped = [e for e in gaze_events if e.flag == "skipped"]
+    updates["reads_to_end"] = len(skipped) == 0
+
+    # Topic extraction on confusion turns
+    if reward < 0 and message:
+        topic = _extract_topic(message)
+        if topic:
+            existing = profile.get("topics_to_simplify", [])
+            if topic not in existing:
+                updates["topics_to_simplify"] = (existing + [topic])[-5:]
 
     confusion_zones = [e.zone for e in gaze_events if e.flag == "confusion"]
     if confusion_zones:
         updates["re_read_rate"] = round(len(confusion_zones) / len(gaze_events), 2)
 
-    # Estimate words read from paragraph-level zones that were not skipped
+    # Estimate words read from zones that were not skipped (EMA to smooth noise)
     read_zones = {
         e.zone for e in gaze_events
         if e.flag in ("smooth", "confusion", "skim") and "_w" not in e.zone
     }
     if read_zones:
-        estimated = len(read_zones) * 30  # ~30 words per paragraph zone
+        estimated = len(read_zones) * 30
         current   = profile.get("avg_words_read", 200)
         updates["avg_words_read"] = round(current * 0.7 + estimated * 0.3)
 

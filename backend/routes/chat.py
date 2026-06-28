@@ -51,9 +51,10 @@ async def chat(req: ChatRequest):
             },
             "timestamp":      datetime.now(timezone.utc).isoformat(),
         })
+        increment_turn(session_id)
 
-    # Build adapted system prompt from current user profile
-    system_prompt = build_system_prompt(user)
+    # Build adapted system prompt from current user profile + CoALA semantic retrieval
+    system_prompt = build_system_prompt(user, req.message)
 
     history = [{"role": m.role, "content": m.content} for m in req.history]
     text    = _generate(system_prompt, req.message, history)

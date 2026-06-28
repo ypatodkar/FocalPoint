@@ -10,6 +10,14 @@ load_dotenv(dotenv_path=ENV_PATH, override=True)
 
 app = FastAPI(title="FocalPoint API", version="1.0.0")
 
+@app.on_event("startup")
+def startup():
+    try:
+        from db.facts import ensure_vector_index
+        ensure_vector_index()
+    except Exception as e:
+        print(f"[startup] Vector index setup failed (non-fatal): {e}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
