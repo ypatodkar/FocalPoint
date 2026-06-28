@@ -18,8 +18,14 @@ const CALIBRATION_POINTS = [
 ];
 
 const CLICKS_PER_POINT = 4;
-const MODEL_KEY = 'fp_mediapipe_gaze_model';
+const MODEL_VERSION = 2;
+const MODEL_KEY = 'fp_mediapipe_gaze_model_v2';
 const VIDEO_ID = 'fpGazeVideo';
+const FEATURE_HISTORY_LIMIT = 12;
+const CALIBRATION_AVERAGE_FRAMES = 6;
+const ONE_EURO_MIN_CUTOFF = 0.9;
+const ONE_EURO_BETA = 0.12;
+const ONE_EURO_D_CUTOFF = 1.0;
 
 function meanLandmark(points, indexes) {
   return indexes.reduce(
@@ -86,15 +92,119 @@ function fitLinearModel(samples) {
   const inv = invertMatrix(xtx);
   const coeffX = inv.map(row => row.reduce((sum, value, i) => sum + value * xtyX[i], 0));
   const coeffY = inv.map(row => row.reduce((sum, value, i) => sum + value * xtyY[i], 0));
-  return { coeffX, coeffY };
+  if (!coeffX.every(Number.isFinite) || !coeffY.every(Number.isFinite)) {
+    throw new Error('Calibration produced invalid coefficients. Recalibrate with steadier clicks.');
+  }
+  return { version: MODEL_VERSION, featureCount, coeffX, coeffY };
 }
 
 function dot(a, b) {
+  if (a.length !== b.length) {
+    throw new Error(`Gaze model feature mismatch: model has ${b.length}, tracker produced ${a.length}. Recalibrate.`);
+  }
   return a.reduce((sum, value, i) => sum + value * b[i], 0);
 }
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+function expandFeatures(base) {
+  const [lx, rx, gx, ly, ry, gy, noseX, noseY, faceScale, faceTilt] = base;
+  return [
+    1,
+    lx,
+    rx,
+    gx,
+    ly,
+    ry,
+    gy,
+    noseX,
+    noseY,
+    faceScale,
+    faceTilt,
+    gx * gy,
+    lx * ly,
+    rx * ry,
+    noseX * gx,
+    noseY * gy,
+    faceScale * gx,
+    faceScale * gy,
+    faceTilt * gx,
+    faceTilt * gy,
+    gx * gx,
+    gy * gy,
+    noseX * noseX,
+    noseY * noseY,
+  ];
+}
+
+function averageFeatures(history) {
+  if (history.length < CALIBRATION_AVERAGE_FRAMES) {
+    throw new Error(`Need ${CALIBRATION_AVERAGE_FRAMES} stable iris frames before recording this calibration point.`);
+  }
+  const recent = history.slice(-CALIBRATION_AVERAGE_FRAMES);
+  return recent[0].map((_, i) => (
+    recent.reduce((sum, features) => sum + features[i], 0) / recent.length
+  ));
+}
+
+function alpha(cutoff, dt) {
+  const tau = 1 / (2 * Math.PI * cutoff);
+  return 1 / (1 + tau / dt);
+}
+
+function smoothValue(current, previous, alphaValue) {
+  return alphaValue * current + (1 - alphaValue) * previous;
+}
+
+function makeOneEuroFilter() {
+  return {
+    lastTime: null,
+    x: null,
+    y: null,
+    dx: 0,
+    dy: 0,
+  };
+}
+
+function filterPoint(filter, x, y, timestamp) {
+  if (filter.lastTime === null) {
+    filter.lastTime = timestamp;
+    filter.x = x;
+    filter.y = y;
+    return { x, y };
+  }
+
+  const dt = Math.max(1 / 120, (timestamp - filter.lastTime) / 1000);
+  filter.lastTime = timestamp;
+
+  const rawDx = (x - filter.x) / dt;
+  const rawDy = (y - filter.y) / dt;
+  const dAlpha = alpha(ONE_EURO_D_CUTOFF, dt);
+  filter.dx = smoothValue(rawDx, filter.dx, dAlpha);
+  filter.dy = smoothValue(rawDy, filter.dy, dAlpha);
+
+  const speed = Math.hypot(filter.dx, filter.dy);
+  const cutoff = ONE_EURO_MIN_CUTOFF + ONE_EURO_BETA * speed;
+  const xAlpha = alpha(cutoff, dt);
+  filter.x = smoothValue(x, filter.x, xAlpha);
+  filter.y = smoothValue(y, filter.y, xAlpha);
+  return { x: filter.x, y: filter.y };
+}
+
+function parseSavedModel(rawModel) {
+  const model = JSON.parse(rawModel);
+  if (
+    model?.version !== MODEL_VERSION ||
+    !Array.isArray(model.coeffX) ||
+    !Array.isArray(model.coeffY) ||
+    model.coeffX.length !== model.coeffY.length ||
+    model.coeffX.length !== model.featureCount
+  ) {
+    throw new Error('Saved iris calibration model is incompatible. Recalibrate.');
+  }
+  return model;
 }
 
 function extractGazeFeatures(landmarks) {
@@ -126,7 +236,7 @@ function extractGazeFeatures(landmarks) {
   const faceScale = Math.hypot(rightOuter.x - leftOuter.x, rightOuter.y - leftOuter.y);
   const faceTilt = Math.atan2(rightOuter.y - leftOuter.y, rightOuter.x - leftOuter.x);
 
-  return [1, lx, rx, (lx + rx) / 2, ly, ry, (ly + ry) / 2, nose.x, nose.y, faceScale, faceTilt];
+  return expandFeatures([lx, rx, (lx + rx) / 2, ly, ry, (ly + ry) / 2, nose.x, nose.y, faceScale, faceTilt]);
 }
 
 export default function IrisTrackerController({
@@ -140,8 +250,10 @@ export default function IrisTrackerController({
   const streamRef = useRef(null);
   const frameRef = useRef(null);
   const latestFeatures = useRef(null);
+  const featureHistory = useRef([]);
   const latestModel = useRef(null);
   const calibrationSamples = useRef([]);
+  const pointFilter = useRef(makeOneEuroFilter());
   const running = useRef(false);
 
   const [loading, setLoading] = useState(false);
@@ -153,8 +265,13 @@ export default function IrisTrackerController({
   useEffect(() => {
     const savedModel = localStorage.getItem(MODEL_KEY);
     if (savedModel) {
-      latestModel.current = JSON.parse(savedModel);
-      setCameraStopped(true);
+      try {
+        latestModel.current = parseSavedModel(savedModel);
+        setCameraStopped(true);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setPermissionError(message);
+      }
     }
 
     return () => {
@@ -183,9 +300,12 @@ export default function IrisTrackerController({
       const landmarks = results.multiFaceLandmarks?.[0];
       if (!landmarks) {
         latestFeatures.current = null;
+        featureHistory.current = [];
         return;
       }
-      latestFeatures.current = extractGazeFeatures(landmarks);
+      const features = extractGazeFeatures(landmarks);
+      latestFeatures.current = features;
+      featureHistory.current = [...featureHistory.current, features].slice(-FEATURE_HISTORY_LIMIT);
     });
     faceMeshRef.current = faceMesh;
     return faceMesh;
@@ -226,10 +346,15 @@ export default function IrisTrackerController({
 
   const emitPrediction = () => {
     if (!latestFeatures.current || !latestModel.current) return;
+    if (latestModel.current.featureCount !== latestFeatures.current.length) {
+      throw new Error(`Gaze model feature mismatch: model has ${latestModel.current.featureCount}, tracker produced ${latestFeatures.current.length}. Recalibrate.`);
+    }
     const x = clamp(dot(latestFeatures.current, latestModel.current.coeffX), 0, window.innerWidth);
     const y = clamp(dot(latestFeatures.current, latestModel.current.coeffY), 0, window.innerHeight);
-    onTrackingPoint(x, y);
-    onGazeUpdate(x, y, performance.now());
+    const timestamp = performance.now();
+    const point = filterPoint(pointFilter.current, x, y, timestamp);
+    onTrackingPoint(point.x, point.y);
+    onGazeUpdate(point.x, point.y, timestamp);
   };
 
   const runFrameLoop = async () => {
@@ -237,8 +362,13 @@ export default function IrisTrackerController({
     try {
       await faceMeshRef.current.send({ image: videoRef.current });
       emitPrediction();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setPermissionError(message);
+      running.current = false;
+      setTrackingActive(false);
     } finally {
-      frameRef.current = requestAnimationFrame(runFrameLoop);
+      if (running.current) frameRef.current = requestAnimationFrame(runFrameLoop);
     }
   };
 
@@ -263,7 +393,10 @@ export default function IrisTrackerController({
   const startCalibration = async () => {
     await startCamera();
     calibrationSamples.current = [];
+    featureHistory.current = [];
+    latestFeatures.current = null;
     latestModel.current = null;
+    pointFilter.current = makeOneEuroFilter();
     localStorage.removeItem(MODEL_KEY);
     setTrackingActive(false);
     setCalibrating(true);
@@ -279,7 +412,8 @@ export default function IrisTrackerController({
       setPermissionError('No saved MediaPipe calibration model. Calibrate first.');
       return;
     }
-    latestModel.current = JSON.parse(savedModel);
+    latestModel.current = parseSavedModel(savedModel);
+    pointFilter.current = makeOneEuroFilter();
     await startCamera();
     setTrackingActive(true);
     setCalibrationProgress(null);
@@ -301,6 +435,8 @@ export default function IrisTrackerController({
     }
 
     latestFeatures.current = null;
+    featureHistory.current = [];
+    pointFilter.current = makeOneEuroFilter();
     setTrackingActive(false);
     setCalibrating(false);
     setCalibrationProgress(null);
@@ -318,7 +454,15 @@ export default function IrisTrackerController({
 
     const x = Math.round((point.left / 100) * window.innerWidth);
     const y = Math.round((point.top / 100) * window.innerHeight);
-    calibrationSamples.current.push({ features: [...latestFeatures.current], x, y });
+    let features;
+    try {
+      features = averageFeatures(featureHistory.current);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setPermissionError(message);
+      return;
+    }
+    calibrationSamples.current.push({ features, x, y });
 
     const updated = { ...clickCounts, [point.id]: currentClicks + 1 };
     setClickCounts(updated);
@@ -330,6 +474,7 @@ export default function IrisTrackerController({
       try {
         const model = fitLinearModel(calibrationSamples.current);
         latestModel.current = model;
+        pointFilter.current = makeOneEuroFilter();
         localStorage.setItem(MODEL_KEY, JSON.stringify(model));
         setCalibrating(false);
         setTrackingActive(true);
