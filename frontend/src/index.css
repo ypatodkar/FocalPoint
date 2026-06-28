@@ -411,3 +411,20 @@ html, body {
   background-color: rgba(138,180,248,0.28) !important;
   border-radius: 3px;
 }
+
+/* ── Live gaze marker ── */
+.gaze-tracking-dot {
+  position: fixed;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  margin-top: -9px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,0.92);
+  background: rgba(20,184,166,0.78);
+  box-shadow:
+    0 0 0 6px rgba(20,184,166,0.18),
+    0 0 18px rgba(20,184,166,0.72);
+  pointer-events: none;
+  z-index: 99998;
+}

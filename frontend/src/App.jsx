@@ -51,6 +51,7 @@ export default function App() {
   const [heatmapEnabled, setHeatmapEnabled] = useState(true);
   const [currentWordId, setCurrentWordId] = useState(null);
   const [gazeTick, setGazeTick] = useState(0);
+  const [gazePoint, setGazePoint] = useState(null);
 
   const activeSessionId = useRef(null);
   const sessionId = useRef(genId());
@@ -66,6 +67,9 @@ export default function App() {
 
   useEffect(() => { trackingActiveRef.current = trackingActive; }, [trackingActive]);
   useEffect(() => { loadingRef.current = loading; }, [loading]);
+  useEffect(() => {
+    if (!trackingActive) setGazePoint(null);
+  }, [trackingActive]);
 
   // Load sessions and profile from the FastAPI backend on mount
   useEffect(() => {
@@ -115,6 +119,7 @@ export default function App() {
       sY = alpha * medianY + (1 - alpha) * smoothedGaze.current.y;
     }
     smoothedGaze.current = { x: sX, y: sY };
+    setGazePoint({ x: sX, y: sY });
 
     const zone = getZoneAtGaze(sX, sY);
     if (!zone) {
@@ -163,6 +168,7 @@ export default function App() {
     smoothedGaze.current = { x: null, y: null };
     setGazeTick(0);
     setCurrentWordId(null);
+    setGazePoint(null);
   };
 
   const startNewChat = async () => {
@@ -549,6 +555,14 @@ export default function App() {
         userProfile={userProfile}
         gazeTick={gazeTick}
       />
+
+      {trackingActive && gazePoint && (
+        <div
+          className="gaze-tracking-dot"
+          style={{ left: `${gazePoint.x}px`, top: `${gazePoint.y}px` }}
+          aria-hidden="true"
+        />
+      )}
 
       <style>{`
         @keyframes pulse-green {
