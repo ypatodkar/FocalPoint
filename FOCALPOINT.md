@@ -30,7 +30,7 @@ A chat interface that watches how you read using eye-tracking, derives implicit 
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React (Vite) |
-| Eye-tracking | WebGazer.js (browser-based, no hardware) |
+| Eye-tracking | MediaPipe FaceMesh/Iris (browser-based, no hardware) |
 | Backend | Python + FastAPI |
 | LLM | Gemini 3.5 Flash |
 | Meta-agent | Gemini Interactions API / Antigravity |
@@ -44,7 +44,7 @@ A chat interface that watches how you read using eye-tracking, derives implicit 
 FocalPoint implements all six layers of cognitive memory:
 
 ### 1. Sensory Memory
-- **What:** Raw gaze stream from WebGazer.js
+- **What:** Raw gaze stream from MediaPipe FaceMesh/Iris
 - **Format:** `{ x, y, timestamp }` every ~50ms
 - **Lifetime:** Milliseconds — immediately processed into working memory
 - **Where:** Browser in-memory buffer (not persisted)
@@ -139,7 +139,7 @@ FocalPoint implements all six layers of cognitive memory:
 Every turn runs this loop:
 
 ```
-OBSERVE  → Gaze stream arrives from WebGazer.js
+OBSERVE  → Gaze stream arrives from MediaPipe FaceMesh/Iris
            Zone visit counts computed
            Flags raised: { confusion, skim, skip, smooth }
 
@@ -371,7 +371,7 @@ def build_system_prompt(user_profile, recent_episodes):
 | Yash (Backend) | Teammate (Frontend) |
 |----------------|---------------------|
 | FastAPI + CORS setup | React chat UI |
-| Gemini 3.5 Flash integration | WebGazer.js initialization |
+| Gemini 3.5 Flash integration | MediaPipe FaceMesh/Iris initialization |
 | Reward function computation | Zone mapping on response DOM |
 | System prompt builder | Gaze event detection + flag computation |
 | MongoDB read/write | Heatmap color overlay |
@@ -388,7 +388,7 @@ def build_system_prompt(user_profile, recent_episodes):
 - [ ] MongoDB Atlas connected
 
 ### Hour 3–4 (11AM–1PM): Eye-Tracking Core
-- [ ] WebGazer.js installed and calibrated in browser
+- [ ] MediaPipe FaceMesh/Iris installed and calibrated in browser
 - [ ] Response text divided into zones by paragraph
 - [ ] Gaze coordinates mapped to zones in real-time
 - [ ] Zone visit counter working

@@ -28,7 +28,7 @@ export function getZoneAtGaze(x, y) {
  * Flags: 'smooth' | 'confusion' | 'skim' | 'skipped'
  * 
  * @param {string[]} allZones - List of all zone IDs present in the response.
- * @param {Object} zoneLog - The accumulated timestamps of gaze events per zone.
+ * @param {Object} zoneLog - Stable fixation timestamps per zone.
  * @returns {Array<{zone: string, visits: number, flag: string}>}
  */
 export function computeGazeEvents(allZones, zoneLog) {
@@ -40,23 +40,14 @@ export function computeGazeEvents(allZones, zoneLog) {
       return { zone, visits: 0, flag: 'skipped' };
     }
 
-    // confusion: visited same zone 3+ times within 5 seconds
-    if (visits >= 3) {
-      // Find if any window of 3 visits happened in < 5 seconds
-      for (let i = 0; i <= visits - 3; i++) {
-        const span = timestamps[i + 2] - timestamps[i];
-        if (span < 5000) {
-          return { zone, visits, flag: 'confusion' };
-        }
-      }
+    // confusion: sustained fixation or repeated returns to the same zone.
+    if (visits >= 4) {
+      return { zone, visits, flag: 'confusion' };
     }
 
-    // skim: visited 2+ times but very fast (< 500ms total)
-    if (visits >= 2) {
-      const span = timestamps[timestamps.length - 1] - timestamps[0];
-      if (span < 500) {
-        return { zone, visits, flag: 'skim' };
-      }
+    // skim: one stable fixation means the zone was seen but not meaningfully read.
+    if (visits === 1) {
+      return { zone, visits, flag: 'skim' };
     }
 
     return { zone, visits, flag: 'smooth' };

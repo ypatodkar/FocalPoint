@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Video, Eye, Terminal, Camera } from 'lucide-react';
 import GazeMirror from './GazeMirror';
 import SystemPromptPanel from './SystemPromptPanel';
-import WebGazerController from './WebGazerController';
+import IrisTrackerController from './IrisTrackerController';
 
 export default function RightPanel({
   trackingActive,
@@ -20,10 +20,10 @@ export default function RightPanel({
 }) {
   const videoSlotRef = useRef(null);
 
-  // Move the WebGazer video feed into our video window when it appears
+  // Move the MediaPipe video feed into our video window when it appears
   useEffect(() => {
     const moveVideo = () => {
-      const vid = document.getElementById('webgazerVideoFeed');
+      const vid = document.getElementById('fpGazeVideo');
       if (vid && videoSlotRef.current && !videoSlotRef.current.contains(vid)) {
         vid._originalParent = vid.parentElement;
         vid.style.position = 'relative';
@@ -53,7 +53,7 @@ export default function RightPanel({
       <div className="panel-window">
         <div className="panel-header">
           <Video size={10} color="var(--panel-muted)" />
-          <span className="panel-title">Eye Tracking</span>
+          <span className="panel-title">Iris Tracking</span>
           <span className={`panel-badge ${trackingActive ? 'badge-live' : 'badge-off'}`}>
             {trackingActive ? 'LIVE' : 'OFF'}
           </span>
@@ -98,12 +98,10 @@ export default function RightPanel({
           display: 'flex', flexDirection: 'column', gap: '6px',
           background: 'var(--panel-bg)',
         }}>
-          <WebGazerController
+          <IrisTrackerController
             onGazeUpdate={onGazeUpdate}
-            trackingActive={trackingActive}
             setTrackingActive={setTrackingActive}
             setCalibrationProgress={setCalibrationProgress}
-            compact
           />
           {calibrationProgress !== null && (
             <div style={{ padding: '2px 4px' }}>

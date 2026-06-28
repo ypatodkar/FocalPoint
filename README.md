@@ -8,13 +8,14 @@ FocalPoint is a gaze-aware LLM chat interface. The frontend tracks which respons
 - Backend: FastAPI on `http://127.0.0.1:8000`
 - LLM: Gemini through `google-generativeai`
 - Database: MongoDB Atlas via `pymongo`
-- Eye tracking: WebGazer in the browser
+- Eye tracking: MediaPipe FaceMesh/Iris in the browser
 
 The app intentionally has no mock or fallback response path. If Gemini, MongoDB, CORS, or the backend is broken, the UI shows the real backend error.
 
 ## What Changed
 
 - Root `npm run dev` now starts both the backend and frontend.
+- Eye tracking now uses local MediaPipe FaceMesh/Iris landmarks with calibrated screen-coordinate regression.
 - Vite uses strict port `5173`, matching the backend CORS configuration.
 - Frontend chat calls now require the FastAPI backend; local simulation was removed.
 - Backend chat now fails with a real `502` when Gemini generation fails.
@@ -156,5 +157,5 @@ On model failure, `/chat` returns a non-2xx error. It does not return simulated 
 ## Notes
 
 - `demo_user` is hardcoded for the hackathon demo.
-- WebGazer calibration data may still use browser localStorage; chat/session/profile state does not.
+- MediaPipe iris calibration model may still use browser localStorage; chat/session/profile state does not.
 - If port `5173` is already in use, `npm run dev` fails instead of moving the frontend to a different port.

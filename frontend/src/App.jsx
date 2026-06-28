@@ -22,7 +22,17 @@ const SUGGESTIONS = [
   'How does eye tracking technology work?',
 ];
 
+const GAZE_SAMPLE_WINDOW = 5;
+const FIXATION_DWELL_MS = 180;
+const FIXATION_LOG_INTERVAL_MS = 450;
+const GAZE_TICK_INTERVAL_MS = 120;
+
 const genId = () => `s_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+
+function median(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)];
+}
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -45,8 +55,9 @@ export default function App() {
   const activeSessionId = useRef(null);
   const sessionId = useRef(genId());
   const zoneLog = useRef({});
+  const gazeSamples = useRef([]);
+  const fixationState = useRef({ zone: null, startedAt: 0, lastLoggedAt: 0 });
   const smoothedGaze = useRef({ x: null, y: null });
-  const readingState = useRef({ line: null, startTime: null });
   const chatEndRef = useRef(null);
   const textareaRef = useRef(null);
   const trackingActiveRef = useRef(false);
@@ -86,46 +97,60 @@ export default function App() {
 
   const handleGazeUpdate = useCallback((x, y, timestamp) => {
     if (!trackingActiveRef.current || loadingRef.current) return;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
 
-    let alpha = 0.4;
-    let sX = x, sY = y;
+    const currentTime = timestamp || Date.now();
+    gazeSamples.current = [...gazeSamples.current, { x, y }].slice(-GAZE_SAMPLE_WINDOW);
+    const medianX = median(gazeSamples.current.map(p => p.x));
+    const medianY = median(gazeSamples.current.map(p => p.y));
+
+    let sX = medianX;
+    let sY = medianY;
     if (smoothedGaze.current.x !== null) {
-      const dx = x - smoothedGaze.current.x;
-      const dy = y - smoothedGaze.current.y;
+      const dx = medianX - smoothedGaze.current.x;
+      const dy = medianY - smoothedGaze.current.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < 20) alpha = 0.02;
-      else if (dist < 50) alpha = 0.1;
-      sX = alpha * x + (1 - alpha) * smoothedGaze.current.x;
-      sY = alpha * y + (1 - alpha) * smoothedGaze.current.y;
+      const alpha = dist > 180 ? 0.85 : dist > 80 ? 0.45 : 0.18;
+      sX = alpha * medianX + (1 - alpha) * smoothedGaze.current.x;
+      sY = alpha * medianY + (1 - alpha) * smoothedGaze.current.y;
     }
     smoothedGaze.current = { x: sX, y: sY };
 
     const zone = getZoneAtGaze(sX, sY);
-    const currentTime = timestamp || Date.now();
-
-    if (zone !== readingState.current.line) {
-      readingState.current = { line: zone, startTime: currentTime };
-    }
-
-    // Update the currently-fixated word for the right panel
-    if (zone && zone.includes('_w')) {
-      setCurrentWordId(zone);
-    } else if (!zone) {
+    if (!zone) {
+      fixationState.current = { zone: null, startedAt: 0, lastLoggedAt: 0 };
       setCurrentWordId(null);
+      return;
     }
 
-    if (!zone) return;
-
-    if (!zoneLog.current[zone]) zoneLog.current[zone] = [];
-    zoneLog.current[zone].push(currentTime);
-
-    if (zone.includes('_w')) {
-      const parentZone = zone.split('_w')[0];
-      if (!zoneLog.current[parentZone]) zoneLog.current[parentZone] = [];
-      zoneLog.current[parentZone].push(currentTime);
+    if (zone !== fixationState.current.zone) {
+      fixationState.current = { zone, startedAt: currentTime, lastLoggedAt: 0 };
+      return;
     }
 
-    if (currentTime - (window.lastGazeTickTime || 0) > 100) {
+    const dwellMs = currentTime - fixationState.current.startedAt;
+    const shouldLogFixation =
+      dwellMs >= FIXATION_DWELL_MS &&
+      (fixationState.current.lastLoggedAt === 0 ||
+        currentTime - fixationState.current.lastLoggedAt >= FIXATION_LOG_INTERVAL_MS);
+
+    if (shouldLogFixation) {
+      if (!zoneLog.current[zone]) zoneLog.current[zone] = [];
+      zoneLog.current[zone].push(currentTime);
+
+      if (zone.includes('_w')) {
+        const parentZone = zone.split('_w')[0];
+        if (!zoneLog.current[parentZone]) zoneLog.current[parentZone] = [];
+        zoneLog.current[parentZone].push(currentTime);
+        setCurrentWordId(zone);
+      } else {
+        setCurrentWordId(null);
+      }
+
+      fixationState.current.lastLoggedAt = currentTime;
+    }
+
+    if (currentTime - (window.lastGazeTickTime || 0) > GAZE_TICK_INTERVAL_MS) {
       window.lastGazeTickTime = currentTime;
       setGazeTick(prev => prev + 1);
     }
@@ -133,6 +158,9 @@ export default function App() {
 
   const resetZoneLog = () => {
     zoneLog.current = {};
+    gazeSamples.current = [];
+    fixationState.current = { zone: null, startedAt: 0, lastLoggedAt: 0 };
+    smoothedGaze.current = { x: null, y: null };
     setGazeTick(0);
     setCurrentWordId(null);
   };
