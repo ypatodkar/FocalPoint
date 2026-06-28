@@ -5,54 +5,54 @@
   --font-body: 'Roboto', system-ui, sans-serif;
   --font-mono: 'Roboto Mono', monospace;
 
-  /* Gemini light palette */
-  --bg-app:      #f0f4f9;
-  --bg-sidebar:  #f0f4f9;
-  --bg-chat:     #fff;
-  --bg-input:    #f0f4f9;
-  --bg-user-msg: #e9eef6;
-  --bg-hover:    #e9eef6;
-  --bg-active:   #dde3ea;
+  /* Gemini dark palette */
+  --bg-app:      #1b1b1f;
+  --bg-sidebar:  #1b1b1f;
+  --bg-chat:     #131314;
+  --bg-input:    #1e1f20;
+  --bg-user-msg: #2b2d31;
+  --bg-hover:    #28292d;
+  --bg-active:   #303136;
 
-  --border:       rgba(0,0,0,0.10);
-  --border-light: rgba(0,0,0,0.06);
+  --border:       rgba(255,255,255,0.08);
+  --border-light: rgba(255,255,255,0.05);
 
-  --text-primary:   #1f1f1f;
-  --text-secondary: #444746;
-  --text-muted:     #747775;
+  --text-primary:   #e3e3e8;
+  --text-secondary: #b4b4bb;
+  --text-muted:     #8e8e93;
 
-  /* FocalPoint brand — blue/teal instead of purple */
-  --accent:           #1a73e8;
-  --accent-hover:     #1557b0;
-  --accent-glow:      rgba(26, 115, 232, 0.15);
-  --accent-teal:      #0891b2;
-  --accent-teal-glow: rgba(8,145,178,0.15);
+  /* FocalPoint brand — blue/teal */
+  --accent:           #8ab4f8;
+  --accent-hover:     #aecbfa;
+  --accent-glow:      rgba(138, 180, 248, 0.15);
+  --accent-teal:      #78d9ec;
+  --accent-teal-glow: rgba(120,217,236,0.15);
 
   /* Semantic */
-  --success: #1e8e3e;
-  --warning: #f9ab00;
-  --danger:  #d93025;
+  --success: #81c995;
+  --warning: #fdd663;
+  --danger:  #f28b82;
 
   /* Right panel */
-  --panel-bg:      #1a1f27;
-  --panel-border:  rgba(255,255,255,0.08);
+  --panel-bg:      #1e1f20;
+  --panel-border:  rgba(255,255,255,0.06);
   --panel-text:    #e8eaed;
   --panel-muted:   #9aa0a6;
   --panel-accent:  #8ab4f8;
-  --panel-green:   #34a853;
-  --panel-yellow:  #fbbc04;
-  --panel-red:     #ea4335;
+  --panel-green:   #81c995;
+  --panel-yellow:  #fdd663;
+  --panel-red:     #f28b82;
 
   /* Layout */
-  --sidebar-width:   280px;
-  --right-width:     300px;
+  --sidebar-width:   260px;
+  --right-width:     320px;
   --radius-lg:       16px;
   --radius-md:       12px;
   --radius-sm:       8px;
   --radius-pill:     24px;
 
   font-family: var(--font-sans);
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -75,8 +75,8 @@ html, body {
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.14); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.22); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
 /* ── Animations ── */
 @keyframes fadeUp {
@@ -84,12 +84,12 @@ html, body {
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes pulse-dot {
-  0%,100% { box-shadow: 0 0 0 0 rgba(26,115,232,0.4); }
-  50%      { box-shadow: 0 0 0 6px rgba(26,115,232,0); }
+  0%,100% { box-shadow: 0 0 0 0 rgba(138,180,248,0.4); }
+  50%      { box-shadow: 0 0 0 6px rgba(138,180,248,0); }
 }
 @keyframes pulse-green {
-  0%,100% { box-shadow: 0 0 0 0 rgba(30,142,62,0.5); }
-  50%      { box-shadow: 0 0 0 6px rgba(30,142,62,0); }
+  0%,100% { box-shadow: 0 0 0 0 rgba(129,201,149,0.5); }
+  50%      { box-shadow: 0 0 0 6px rgba(129,201,149,0); }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes bounce-dots {
@@ -101,7 +101,7 @@ html, body {
   100% { background-position:  200% 0; }
 }
 @keyframes gaze-flash {
-  0%   { background-color: rgba(26,115,232,0.35); }
+  0%   { background-color: rgba(138,180,248,0.35); }
   100% { background-color: transparent; }
 }
 
@@ -141,6 +141,8 @@ html, body {
   flex-direction: column;
   background: var(--bg-chat);
   overflow: hidden;
+  border-left: 1px solid var(--border-light);
+  border-right: 1px solid var(--border-light);
 }
 .chat-messages {
   flex: 1;
@@ -170,7 +172,7 @@ html, body {
   align-items: flex-end;
   gap: 8px;
   padding: 12px 12px 12px 20px;
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .input-bar:focus-within {
@@ -201,8 +203,8 @@ html, body {
   transition: background 0.2s, transform 0.1s;
 }
 .send-btn:active { transform: scale(0.92); }
-.send-btn.active  { background: var(--text-primary); }
-.send-btn.inactive{ background: var(--bg-active);    cursor: default; }
+.send-btn.active  { background: var(--accent); }
+.send-btn.inactive{ background: var(--bg-active); cursor: default; }
 
 /* ── Messages ── */
 .user-bubble {
@@ -252,7 +254,7 @@ html, body {
 .empty-title {
   font-size: 2.5rem;
   font-weight: 500;
-  background: linear-gradient(135deg, var(--accent) 0%, #4285f4 40%, var(--accent-teal) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #a8c7fa 40%, var(--accent-teal) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -267,7 +269,7 @@ html, body {
 }
 .chip {
   padding: 10px 16px;
-  background: var(--bg-app);
+  background: var(--bg-input);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   font-size: 0.875rem;
@@ -279,10 +281,10 @@ html, body {
 }
 .chip:hover {
   background: var(--bg-hover);
-  border-color: rgba(0,0,0,0.18);
+  border-color: rgba(255,255,255,0.14);
 }
 
-/* ── Right panel (dark) ── */
+/* ── Right panel (dark, attached to right edge) ── */
 .right-panel {
   width: var(--right-width);
   min-width: var(--right-width);
@@ -330,8 +332,8 @@ html, body {
   letter-spacing: 0.05em;
   margin-left: auto;
 }
-.badge-live  { background: rgba(30,142,62,0.25); color: var(--panel-green); }
-.badge-off   { background: rgba(234,67,53,0.25);  color: var(--panel-red); }
+.badge-live  { background: rgba(129,201,149,0.2); color: var(--panel-green); }
+.badge-off   { background: rgba(242,139,130,0.2); color: var(--panel-red); }
 .badge-info  { background: rgba(138,180,248,0.15); color: var(--panel-accent); }
 
 /* ── Sidebar buttons ── */
@@ -406,6 +408,6 @@ html, body {
   display: inline;
 }
 .gaze-word.fixated {
-  background-color: rgba(26,115,232,0.28) !important;
+  background-color: rgba(138,180,248,0.28) !important;
   border-radius: 3px;
 }

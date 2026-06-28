@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Any
 from typing import Literal
 
 class GazeEvent(BaseModel):
@@ -32,3 +33,11 @@ class ChatResponse(BaseModel):
 class SessionEndRequest(BaseModel):
     user_id:    str
     session_id: str
+
+class SaveSessionRequest(BaseModel):
+    user_id: str
+    session: dict[str, Any]
+
+class SaveProfileRequest(BaseModel):
+    user_id: str
+    profile: dict[str, Any]

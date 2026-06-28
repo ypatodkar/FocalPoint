@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 
-export default function GazeMirror({ messages, currentWordId, heatmapEnabled }) {
+export default function GazeMirror({ messages, currentWordId }) {
   const containerRef = useRef(null);
 
   // Find the last assistant message
@@ -43,13 +43,13 @@ export default function GazeMirror({ messages, currentWordId, heatmapEnabled }) 
           <p key={i} style={{ margin: '0 0 4px 0', display: 'flex', flexWrap: 'wrap', gap: '1px' }}>
             {isBullet && <span style={{ color: 'var(--panel-accent)', marginRight: '3px', flexShrink: 0 }}>•</span>}
             {cleanText.split(' ').map((word, w) => {
-              const wordId = `zone_${i}_w${w}`;
+              const wordId = `${lastAI.responseId}:zone_${i}_w${w}`;
               const isActive = currentWordId === wordId;
               return (
                 <span
                   key={w}
                   style={{
-                    backgroundColor: isActive ? 'rgba(26,115,232,0.45)' : 'transparent',
+                    backgroundColor: isActive ? 'rgba(138,180,248,0.45)' : 'transparent',
                     borderRadius: '2px',
                     padding: '0 1px',
                     transition: 'background-color 0.15s',

@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Eye, RefreshCw, SquarePen as PenSquare, Menu, X, Sparkles, MessageSquare, Settings, ChevronDown } from 'lucide-react';
-import WebGazerController from './components/WebGazerController';
+import { Send, Eye, RefreshCw, SquarePen as PenSquare, Menu, X, MessageSquare } from 'lucide-react';
 import ResponseDisplay from './components/ResponseDisplay';
 import RightPanel from './components/RightPanel';
 import { getZoneAtGaze, computeGazeEvents } from './utils/gazeUtils';
@@ -8,7 +7,7 @@ import { sendChatMessage } from './utils/api';
 import {
   loadSessionsFromDB, saveSessionToDB, loadProfileFromDB,
   saveProfileToDB, deleteSessionFromDB,
-} from './lib/supabase';
+} from './lib/localDb';
 
 const INIT_MSG = {
   role: 'assistant',
@@ -35,7 +34,7 @@ export default function App() {
   const [userProfile, setUserProfile] = useState({ complexity_score: 5, preferred_format: 'prose' });
   const [lastReward, setLastReward] = useState(null);
   const [systemPrompt, setSystemPrompt] = useState('');
-  const [useMock, setUseMock] = useState(false);
+  const [backendError, setBackendError] = useState(null);
 
   const [trackingActive, setTrackingActive] = useState(false);
   const [calibrationProgress, setCalibrationProgress] = useState(null);
@@ -57,21 +56,26 @@ export default function App() {
   useEffect(() => { trackingActiveRef.current = trackingActive; }, [trackingActive]);
   useEffect(() => { loadingRef.current = loading; }, [loading]);
 
-  // Load sessions and profile from Supabase on mount
+  // Load sessions and profile from the FastAPI backend on mount
   useEffect(() => {
     if (dbLoaded.current) return;
     dbLoaded.current = true;
     (async () => {
-      const [dbSessions, dbProfile] = await Promise.all([
-        loadSessionsFromDB(),
-        loadProfileFromDB(),
-      ]);
-      if (dbSessions.length) setSessions(dbSessions);
-      if (dbProfile) {
-        setUserProfile({
-          complexity_score: dbProfile.complexity_score,
-          preferred_format: dbProfile.preferred_format,
-        });
+      try {
+        const [dbSessions, dbProfile] = await Promise.all([
+          loadSessionsFromDB(),
+          loadProfileFromDB(),
+        ]);
+        if (dbSessions.length) setSessions(dbSessions);
+        if (dbProfile) {
+          setUserProfile({
+            complexity_score: dbProfile.complexity_score,
+            preferred_format: dbProfile.preferred_format,
+          });
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setBackendError(`Backend load failed: ${message}`);
       }
     })();
   }, []);
@@ -157,7 +161,10 @@ export default function App() {
     activeSessionId.current = session.id;
     sessionId.current = session.id;
     setMessages(session.messages);
-    setLastResponseId(null);
+    const lastAssistant = [...session.messages].reverse().find(
+      m => m.role === 'assistant' && m.responseId !== 'init'
+    );
+    setLastResponseId(lastAssistant?.responseId || null);
     resetZoneLog();
   };
 
@@ -180,7 +187,10 @@ export default function App() {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setLoading(true);
 
-    const currentZones = Array.from(document.querySelectorAll('[data-zone]'))
+    const previousResponseEl = lastResponseId
+      ? document.getElementById(`response-${lastResponseId}`)
+      : null;
+    const currentZones = Array.from(previousResponseEl?.querySelectorAll('[data-zone]') || [])
       .map(el => el.getAttribute('data-zone'));
     const gazeEvents = computeGazeEvents(currentZones, zoneLog.current);
 
@@ -195,27 +205,40 @@ export default function App() {
         .map(m => ({ role: m.role, content: m.text }));
 
       const data = await sendChatMessage(
-        text, lastResponseId, gazeEvents, useMock, history, sessionId.current
+        text, lastResponseId, gazeEvents, history, sessionId.current
       );
+      const assistantMsg = { role: 'assistant', text: data.text, responseId: data.response_id };
+      const updatedMessages = [...messages, newUserMsg, assistantMsg];
       setLastResponseId(data.response_id);
       setUserProfile(data.user_profile);
       setLastReward(data.reward);
       setSystemPrompt(data.system_prompt || '');
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', text: data.text, responseId: data.response_id },
-      ]);
+      setBackendError(null);
+      setMessages(updatedMessages);
 
       // Persist updated profile
       await saveProfileToDB({
         complexity_score: data.user_profile.complexity_score,
         preferred_format: data.user_profile.preferred_format,
       });
+
+      const firstUser = updatedMessages.find(m => m.role === 'user');
+      const title = firstUser
+        ? firstUser.text.slice(0, 40) + (firstUser.text.length > 40 ? '…' : '')
+        : 'Chat';
+      const session = { id: sessionId.current, title, messages: updatedMessages };
+      await saveSessionToDB(session);
+      setSessions(prev => {
+        const withoutCurrent = prev.filter(s => s.id !== session.id);
+        return [session, ...withoutCurrent].slice(0, 20);
+      });
     } catch (err) {
       console.error(err);
+      const message = err instanceof Error ? err.message : String(err);
+      setBackendError(`Backend error: ${message}`);
       setMessages(prev => [
         ...prev,
-        { role: 'assistant', text: 'Something went wrong. Please try again.', responseId: 'error' },
+        { role: 'assistant', text: `Backend error: ${message}`, responseId: `error_${Date.now()}` },
       ]);
     } finally {
       setLoading(false);
@@ -235,7 +258,7 @@ export default function App() {
   const isEmptyState = messages.length === 1 && messages[0].responseId === 'init';
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-app)' }}>
+    <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', background: 'var(--bg-app)', margin: 0, padding: 0 }}>
 
       {/* ── SIDEBAR ── */}
       <div className={`sidebar ${sidebarOpen ? '' : 'collapsed'}`}>
@@ -275,97 +298,55 @@ export default function App() {
                   padding: '8px 8px 4px', letterSpacing: '0.01em',
                 }}>Recent</div>
                 {sessions.map(s => (
-                  <button
-                    key={s.id}
-                    className={`sidebar-btn ${activeSessionId.current === s.id ? 'active' : ''}`}
-                    onClick={() => loadSession(s)}
-                    title={s.title}
-                    style={{ position: 'relative', paddingRight: '28px' }}
-                  >
-                    <MessageSquare size={15} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                      {s.title}
-                    </span>
+                  <div key={s.id} style={{ position: 'relative' }}>
+                    <button
+                      className={`sidebar-btn ${activeSessionId.current === s.id ? 'active' : ''}`}
+                      onClick={() => loadSession(s)}
+                      title={s.title}
+                      style={{ paddingRight: '28px', width: '100%' }}
+                    >
+                      <MessageSquare size={15} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                        {s.title}
+                      </span>
+                    </button>
                     <button
                       onClick={(e) => deleteSession(e, s.id)}
+                      aria-label={`Delete ${s.title}`}
                       style={{
                         position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
                         background: 'none', border: 'none', cursor: 'pointer',
                         color: 'var(--text-muted)', padding: '3px', borderRadius: '4px',
                         display: 'flex', alignItems: 'center',
-                        opacity: 0,
+                        opacity: 0.65,
                         transition: 'opacity 0.15s',
                       }}
                       onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                      onMouseLeave={e => e.currentTarget.style.opacity = '0'}
+                      onMouseLeave={e => e.currentTarget.style.opacity = '0.65'}
                     >
                       <X size={12} />
                     </button>
-                  </button>
+                  </div>
                 ))}
               </>
             )}
           </div>
 
-          {/* Bottom controls */}
+          {/* Bottom: brand */}
           <div style={{
             borderTop: '1px solid var(--border-light)',
-            padding: '8px 12px 12px',
-            display: 'flex', flexDirection: 'column', gap: '4px',
+            padding: '12px 16px',
+            display: 'flex', alignItems: 'center', gap: '8px',
           }}>
-            {/* WebGazer controls */}
-            <WebGazerController
-              onGazeUpdate={handleGazeUpdate}
-              trackingActive={trackingActive}
-              setTrackingActive={setTrackingActive}
-              setCalibrationProgress={setCalibrationProgress}
-              compact
-            />
-
-            {/* Mock toggle */}
-            <button
-              onClick={() => setUseMock(m => !m)}
-              className="sidebar-btn"
-              style={{
-                fontSize: '0.8rem',
-                background: useMock ? 'var(--accent-glow)' : 'transparent',
-                color: useMock ? 'var(--accent)' : 'var(--text-muted)',
-                border: `1px solid ${useMock ? 'var(--accent)' : 'transparent'}`,
-                borderRadius: 'var(--radius-pill)',
-              }}
-            >
-              <Settings size={14} />
-              {useMock ? 'Simulator ON' : 'Use Simulator'}
-            </button>
-
-            {/* Heatmap toggle */}
-            <button
-              onClick={() => setHeatmapEnabled(h => !h)}
-              className="sidebar-btn"
-              style={{
-                fontSize: '0.8rem',
-                background: heatmapEnabled ? 'rgba(8,145,178,0.08)' : 'transparent',
-                color: heatmapEnabled ? 'var(--accent-teal)' : 'var(--text-muted)',
-                border: `1px solid ${heatmapEnabled ? 'var(--accent-teal)' : 'transparent'}`,
-                borderRadius: 'var(--radius-pill)',
-              }}
-            >
-              <Eye size={14} />
-              {heatmapEnabled ? 'Heatmap ON' : 'Heatmap OFF'}
-            </button>
-
-            {/* Calibration progress */}
-            {calibrationProgress !== null && (
-              <div style={{ padding: '4px 8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '3px' }}>
-                  <span>Calibrating…</span>
-                  <span>{Math.round(calibrationProgress)}%</span>
-                </div>
-                <div style={{ height: '3px', background: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${calibrationProgress}%`, background: 'var(--accent)', transition: 'width 0.2s' }} />
-                </div>
-              </div>
-            )}
+            <div style={{
+              width: 24, height: 24, borderRadius: '50%',
+              background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-teal) 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <Eye size={12} color="#fff" />
+            </div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>FocalPoint · AIEWF 2026</span>
           </div>
 
         </div>
@@ -385,18 +366,28 @@ export default function App() {
             {isEmptyState ? 'FocalPoint' : sessions.find(s => s.id === activeSessionId.current)?.title || 'FocalPoint'}
           </span>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{
-              fontSize: '0.72rem', color: 'var(--text-muted)',
-              border: '1px solid var(--border)', padding: '3px 10px', borderRadius: '99px',
-            }}>AIEWF 2026</span>
+            {backendError && (
+              <span style={{
+                fontSize: '0.72rem', fontWeight: 600, padding: '3px 10px', borderRadius: '99px',
+                background: 'rgba(242,139,130,0.15)',
+                color: 'var(--danger)',
+                border: '1px solid rgba(242,139,130,0.3)',
+                maxWidth: '420px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}>
+                {backendError}
+              </span>
+            )}
             {lastReward !== null && (
               <span style={{
                 fontSize: '0.72rem', fontWeight: 600, padding: '3px 10px', borderRadius: '99px',
                 background: lastReward > 0.5
-                  ? 'rgba(30,142,62,0.1)' : lastReward >= 0
-                    ? 'rgba(249,171,0,0.1)' : 'rgba(217,48,37,0.1)',
+                  ? 'rgba(129,201,149,0.15)' : lastReward >= 0
+                    ? 'rgba(253,214,99,0.15)' : 'rgba(242,139,130,0.15)',
                 color: lastReward > 0.5 ? 'var(--success)' : lastReward >= 0 ? 'var(--warning)' : 'var(--danger)',
-                border: `1px solid ${lastReward > 0.5 ? 'rgba(30,142,62,0.3)' : lastReward >= 0 ? 'rgba(249,171,0,0.3)' : 'rgba(217,48,37,0.3)'}`,
+                border: `1px solid ${lastReward > 0.5 ? 'rgba(129,201,149,0.3)' : lastReward >= 0 ? 'rgba(253,214,99,0.3)' : 'rgba(242,139,130,0.3)'}`,
               }}>
                 Reward {lastReward >= 0 ? '+' : ''}{lastReward.toFixed(2)}
               </span>
@@ -510,7 +501,7 @@ export default function App() {
             </button>
           </div>
           <div style={{ textAlign: 'center', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-            FocalPoint adapts to your reading patterns. Eye tracking data never leaves your browser.
+            FocalPoint adapts to your reading patterns by sending gaze-zone events to the backend.
           </div>
         </div>
       </div>
@@ -518,9 +509,14 @@ export default function App() {
       {/* ── RIGHT PANEL ── */}
       <RightPanel
         trackingActive={trackingActive}
+        setTrackingActive={setTrackingActive}
+        onGazeUpdate={handleGazeUpdate}
+        setCalibrationProgress={setCalibrationProgress}
+        calibrationProgress={calibrationProgress}
         messages={messages}
         currentWordId={currentWordId}
         heatmapEnabled={heatmapEnabled}
+        setHeatmapEnabled={setHeatmapEnabled}
         systemPrompt={systemPrompt}
         userProfile={userProfile}
         gazeTick={gazeTick}

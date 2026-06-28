@@ -1,13 +1,19 @@
 import React, { useEffect, useRef } from 'react';
-import { Video, Eye, Terminal, Wifi, WifiOff } from 'lucide-react';
+import { Video, Eye, Terminal, Camera } from 'lucide-react';
 import GazeMirror from './GazeMirror';
 import SystemPromptPanel from './SystemPromptPanel';
+import WebGazerController from './WebGazerController';
 
 export default function RightPanel({
   trackingActive,
+  setTrackingActive,
+  onGazeUpdate,
+  setCalibrationProgress,
+  calibrationProgress,
   messages,
   currentWordId,
   heatmapEnabled,
+  setHeatmapEnabled,
   systemPrompt,
   userProfile,
   gazeTick,
@@ -19,10 +25,7 @@ export default function RightPanel({
     const moveVideo = () => {
       const vid = document.getElementById('webgazerVideoFeed');
       if (vid && videoSlotRef.current && !videoSlotRef.current.contains(vid)) {
-        // Keep original parent reference for cleanup
         vid._originalParent = vid.parentElement;
-
-        // Restyle for our panel
         vid.style.position = 'relative';
         vid.style.top = 'auto';
         vid.style.bottom = 'auto';
@@ -35,12 +38,9 @@ export default function RightPanel({
         vid.style.zIndex = 'auto';
         vid.style.transform = 'scaleX(-1)';
         vid.style.objectFit = 'cover';
-
         videoSlotRef.current.appendChild(vid);
       }
     };
-
-    // Try immediately then poll until it appears
     moveVideo();
     const interval = setInterval(moveVideo, 500);
     return () => clearInterval(interval);
@@ -58,8 +58,7 @@ export default function RightPanel({
             {trackingActive ? 'LIVE' : 'OFF'}
           </span>
         </div>
-        <div className="panel-body" style={{ background: '#0d1117' }}>
-          {/* Video feed injected here by useEffect */}
+        <div className="panel-body" style={{ background: '#0a0a0c' }}>
           <div
             ref={videoSlotRef}
             style={{ width: '100%', height: '100%', overflow: 'hidden', position: 'relative' }}
@@ -68,14 +67,13 @@ export default function RightPanel({
               <div style={{
                 position: 'absolute', inset: 0,
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                gap: '8px', color: 'var(--panel-muted)',
+                gap: '12px', color: 'var(--panel-muted)',
               }}>
-                <WifiOff size={24} strokeWidth={1.5} />
-                <span style={{ fontSize: '0.65rem' }}>Calibrate to begin</span>
+                <Camera size={28} strokeWidth={1.5} />
+                <span style={{ fontSize: '0.7rem' }}>Calibrate to begin</span>
               </div>
             )}
           </div>
-          {/* Overlay: gaze dot indicator */}
           {trackingActive && (
             <div style={{
               position: 'absolute', bottom: 6, right: 6,
@@ -87,11 +85,54 @@ export default function RightPanel({
                 width: 6, height: 6, borderRadius: '50%',
                 background: 'var(--panel-green)',
                 animation: 'pulse-green 2s infinite',
-                boxShadow: '0 0 0 0 rgba(30,142,62,0.5)',
               }} />
               <span style={{ fontSize: '0.58rem', color: 'var(--panel-green)', fontWeight: 600 }}>TRACKING</span>
             </div>
           )}
+        </div>
+
+        {/* Calibration controls inside eye tracking window */}
+        <div style={{
+          padding: '8px',
+          borderTop: '1px solid var(--panel-border)',
+          display: 'flex', flexDirection: 'column', gap: '6px',
+          background: 'var(--panel-bg)',
+        }}>
+          <WebGazerController
+            onGazeUpdate={onGazeUpdate}
+            trackingActive={trackingActive}
+            setTrackingActive={setTrackingActive}
+            setCalibrationProgress={setCalibrationProgress}
+            compact
+          />
+          {calibrationProgress !== null && (
+            <div style={{ padding: '2px 4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'var(--panel-muted)', marginBottom: '2px' }}>
+                <span>Calibrating…</span>
+                <span>{Math.round(calibrationProgress)}%</span>
+              </div>
+              <div style={{ height: '3px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${calibrationProgress}%`, background: 'var(--panel-accent)', transition: 'width 0.2s' }} />
+              </div>
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              onClick={() => setHeatmapEnabled(h => !h)}
+              style={{
+                flex: 1, padding: '5px 8px', borderRadius: '6px',
+                border: `1px solid ${heatmapEnabled ? 'var(--panel-accent)' : 'var(--panel-border)'}`,
+                background: heatmapEnabled ? 'rgba(138,180,248,0.1)' : 'transparent',
+                color: heatmapEnabled ? 'var(--panel-accent)' : 'var(--panel-muted)',
+                fontSize: '0.65rem', fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                fontFamily: 'var(--font-sans)',
+              }}
+            >
+              <Eye size={10} />
+              Heatmap
+            </button>
+          </div>
         </div>
       </div>
 

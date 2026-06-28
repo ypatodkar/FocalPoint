@@ -29,7 +29,7 @@ export default function ResponseDisplay({ text, responseId, zoneLog, heatmapEnab
   return (
     <div id={`response-${responseId}`} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
       {paragraphs.map((para, i) => {
-        const zoneId = `zone_${i}`;
+        const zoneId = `${responseId}:zone_${i}`;
         const isBullet = para.startsWith('•') || para.startsWith('-') || para.startsWith('*') || /^\d+\./.test(para);
         const cleanText = isBullet ? para.replace(/^[-•*]|\d+\.\s*/, '').trim() : para;
         const visits = getVisitCount(zoneId);
@@ -49,7 +49,7 @@ export default function ResponseDisplay({ text, responseId, zoneLog, heatmapEnab
               display: 'flex',
               alignItems: 'flex-start',
               gap: '0.5rem',
-              color: '#1f1f1f',
+              color: 'var(--text-primary)',
             }}
           >
             {isBullet && (

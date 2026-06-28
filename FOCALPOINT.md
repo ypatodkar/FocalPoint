@@ -18,10 +18,10 @@ A chat interface that watches how you read using eye-tracking, derives implicit 
 |-------|-------------|----------------|
 | Main prize | Continual Learning theme | Gaze-driven system prompt evolution per turn |
 | Gemini $5,000 | Use Gemini 3.5 feature | Interactions API / Antigravity for meta-learning agent |
-| DigitalOcean | Use DO platform | Deploy backend + fallback LLM if Gemini credits run out |
+| DigitalOcean | Use DO platform | Deploy backend infrastructure |
 | MongoDB | Use Atlas | Store all memory layers — episodic, semantic, procedural |
 
-**Important:** Keep Gemini for the live demo. Use DO GenAI during dev to save credits.
+**Important:** Keep Gemini for the live demo. Do not add fallback model paths; broken model calls must fail visibly.
 
 ---
 
@@ -32,7 +32,7 @@ A chat interface that watches how you read using eye-tracking, derives implicit 
 | Frontend | React (Vite) |
 | Eye-tracking | WebGazer.js (browser-based, no hardware) |
 | Backend | Python + FastAPI |
-| LLM | Gemini 3.5 Flash (primary) / DO GenAI (dev fallback) |
+| LLM | Gemini 3.5 Flash |
 | Meta-agent | Gemini Interactions API / Antigravity |
 | Database | MongoDB Atlas |
 | Hosting | DigitalOcean |

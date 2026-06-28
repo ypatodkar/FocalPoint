@@ -1,25 +1,19 @@
 import uuid
 from datetime import datetime, timezone
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from models import ChatRequest, ChatResponse, UserProfileOut
 from db.users import get_user, update_user
 from db.episodes import write_episode, get_recent_episodes
-from db.sessions import increment_turn
+from db.sessions import increment_turn, start_session
 from services.reward import compute_reward, update_profile_from_reward
 from services.prompt_builder import build_system_prompt
 import services.gemini as gemini_svc
-import services.do_llm as do_svc
 
 def _generate(system_prompt: str, message: str, history: list[dict] = None) -> str:
     try:
         return gemini_svc.generate_response(system_prompt, message, history)
     except Exception as e:
-        print(f"[chat] Gemini failed ({e}), falling back to DigitalOcean")
-    try:
-        return do_svc.generate_response(system_prompt, message)
-    except Exception as e:
-        print(f"[chat] DO fallback also failed ({e})")
-        return "I'm temporarily rate-limited. Please wait a moment and try again — the system will pick up right where it left off."
+        raise HTTPException(status_code=502, detail=f"Gemini generation failed: {e}") from e
 
 router = APIRouter()
 
@@ -27,6 +21,8 @@ router = APIRouter()
 async def chat(req: ChatRequest):
     user    = get_user(req.user_id)
     reward  = None
+    if req.session_id:
+        start_session(req.user_id, req.session_id)
 
     # Process gaze from previous response
     if req.previous_response_id and req.gaze_events:
@@ -62,6 +58,8 @@ async def chat(req: ChatRequest):
     history = [{"role": m.role, "content": m.content} for m in req.history]
     text    = _generate(system_prompt, req.message, history)
     response_id = str(uuid.uuid4())
+    if req.session_id:
+        increment_turn(req.session_id)
 
     return ChatResponse(
         response_id  = response_id,

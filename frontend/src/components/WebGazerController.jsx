@@ -52,11 +52,11 @@ export default function WebGazerController({
   }, []);
 
   const applyVideoStyles = () => {
-    // Don't set fixed position — RightPanel will move the video element into its slot
-    // Just ensure it's visible temporarily until the move happens
+    // Hide all WebGazer-created elements until RightPanel absorbs the video
     const interval = setInterval(() => {
       const video = document.getElementById('webgazerVideoFeed');
       if (video) {
+        // Hide the video itself
         video.style.position = 'fixed';
         video.style.bottom = '-9999px';
         video.style.right = '-9999px';
@@ -64,9 +64,37 @@ export default function WebGazerController({
         video.style.height = '1px';
         video.style.zIndex = '1';
         video.style.opacity = '0';
+
+        // Hide the parent container div that WebGazer wraps around the video
+        const parent = video.parentElement;
+        if (parent && parent.id !== 'root') {
+          parent.style.position = 'fixed';
+          parent.style.top = '-9999px';
+          parent.style.left = '-9999px';
+          parent.style.width = '1px';
+          parent.style.height = '1px';
+          parent.style.overflow = 'hidden';
+          parent.style.opacity = '0';
+          parent.style.pointerEvents = 'none';
+        }
+
         clearInterval(interval);
       }
-    }, 200);
+
+      // Also hide any face overlay / face feedback box / prediction point elements
+      const faceOverlay = document.getElementById('webgazerFaceOverlay');
+      const faceFeedback = document.getElementById('webgazerFaceFeedbackBox');
+      const gazeDot = document.getElementById('webgazerGazeDot');
+      [faceOverlay, faceFeedback, gazeDot].forEach(el => {
+        if (el) {
+          el.style.position = 'fixed';
+          el.style.top = '-9999px';
+          el.style.left = '-9999px';
+          el.style.opacity = '0';
+          el.style.pointerEvents = 'none';
+        }
+      });
+    }, 100);
   };
 
   const attachGazeListener = () => {

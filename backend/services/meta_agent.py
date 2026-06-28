@@ -5,9 +5,7 @@ from db.users import update_user, add_prospective_flag
 from db.episodes import get_session_episodes
 
 # Antigravity = Google's hosted autonomous reasoning agent (Interactions API)
-# Falls back to Gemini Pro if Antigravity key/access not yet available
 ANTIGRAVITY_MODEL = os.getenv("ANTIGRAVITY_MODEL", "antigravity-preview-05-2026")
-FALLBACK_MODEL    = os.getenv("RSI_FALLBACK_MODEL", "gemini-2.0-pro")
 
 META_PROMPT = """
 You are an adaptive learning analyst embedded in FocalPoint, an AI that learns
@@ -62,18 +60,6 @@ def _call_antigravity(prompt: str) -> str:
     )
     return response.text.strip()
 
-def _call_fallback(prompt: str) -> str:
-    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-    model    = genai.GenerativeModel(model_name=FALLBACK_MODEL)
-    response = model.generate_content(
-        prompt,
-        generation_config=genai.GenerationConfig(
-            temperature=0.2,
-            max_output_tokens=800,
-        )
-    )
-    return response.text.strip()
-
 def _parse_json(raw: str) -> dict:
     # Strip markdown fences if the model adds them
     if "```" in raw:
@@ -92,25 +78,16 @@ def run_meta_agent(user_id: str, session_id: str, current_profile: dict) -> list
         profile=json.dumps(current_profile, indent=2, default=str),
     )
 
-    # Try Antigravity first, fall back to Gemini Pro
-    raw = None
     try:
         raw = _call_antigravity(prompt)
         print(f"[meta_agent] Antigravity responded ({len(raw)} chars)")
     except Exception as e:
-        print(f"[meta_agent] Antigravity unavailable ({e}), falling back to {FALLBACK_MODEL}")
-        try:
-            raw = _call_fallback(prompt)
-            print(f"[meta_agent] Fallback responded ({len(raw)} chars)")
-        except Exception as e2:
-            print(f"[meta_agent] Fallback also failed: {e2}")
-            return []
+        raise RuntimeError(f"Antigravity meta-agent failed: {e}") from e
 
     try:
         result = _parse_json(raw)
     except json.JSONDecodeError as e:
-        print(f"[meta_agent] JSON parse failed: {e}\nRaw: {raw[:200]}")
-        return []
+        raise RuntimeError(f"Meta-agent JSON parse failed: {e}; raw response: {raw[:200]}") from e
 
     # Apply profile updates to MongoDB
     if updates := result.get("profile_updates"):

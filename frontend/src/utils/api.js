@@ -1,121 +1,47 @@
-/**
- * API service to communicate with the FastAPI backend.
- * Includes a premium mock simulation fallback in case the backend is offline.
- */
+const API_BASE_URL = 'http://localhost:8000';
 
-let mockComplexity = 5;
-let mockFormat = 'prose';
+async function parseJsonResponse(response, context) {
+  const body = await response.text();
+  let parsed = null;
 
-export async function sendChatMessage(message, previousResponseId, gazeEvents, useMockFallback = false, history = [], sessionId = null) {
-  const payload = {
-    user_id: 'demo_user',
-    message,
-    session_id: sessionId,
-    history,
-    previous_response_id: previousResponseId,
-    gaze_events: gazeEvents,
-  };
-
-  if (!useMockFallback) {
+  if (body) {
     try {
-      const response = await fetch('http://localhost:8000/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        return await response.json();
-      }
-      console.warn("Backend returned error status, falling back to simulation.");
-    } catch (error) {
-      console.warn("Could not connect to backend, falling back to simulation.", error);
+      parsed = JSON.parse(body);
+    } catch {
+      throw new Error(`${context} returned non-JSON response: ${body}`);
     }
   }
 
-  // Standalone Simulation fallback
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Analyze gaze events to compute the reward and update profile
-      let reward = 1.0; // Default smooth read
-      let hasConfusion = false;
-      let hasSkim = false;
-      let hasSkipped = false;
+  if (!response.ok) {
+    const detail = parsed?.detail || parsed?.message || body || response.statusText;
+    throw new Error(`${context} failed (${response.status}): ${detail}`);
+  }
 
-      if (gazeEvents && gazeEvents.length > 0) {
-        let totalReward = 0;
-        gazeEvents.forEach(e => {
-          if (e.flag === 'confusion') {
-            totalReward += -0.5;
-            hasConfusion = true;
-          } else if (e.flag === 'skim') {
-            totalReward += -0.3;
-            hasSkim = true;
-          } else if (e.flag === 'skipped') {
-            totalReward += -0.2;
-            hasSkipped = true;
-          } else {
-            totalReward += 1.0;
-          }
-        });
-        reward = totalReward / gazeEvents.length;
-      }
+  return parsed;
+}
 
-      // Update mock profile based on reward
-      if (reward < 0) {
-        mockComplexity = Math.max(1, mockComplexity - 1);
-        mockFormat = 'bullets';
-      } else if (reward < 0.5) {
-        mockComplexity = Math.max(1, mockComplexity - 1);
-      } else {
-        mockComplexity = Math.min(10, mockComplexity + 1);
-        if (mockComplexity > 6) mockFormat = 'prose';
-      }
+export async function apiRequest(path, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  });
 
-      // Generate response content depending on the complexity and format
-      let responseText = '';
-      if (mockFormat === 'bullets') {
-        responseText = `Here is a simplified explanation of "${message}" based on your reading focus:\n\n`;
-        responseText += `• Core concept: We've simplified this explanation because some parts were read repeatedly.\n`;
-        responseText += `• Point 1: Keep sentences short and straightforward to reduce cognitive load.\n`;
-        responseText += `• Point 2: We use bullet points which make scanning much cleaner and faster.\n`;
-        responseText += `• Point 3: This format avoids technical jargon and provides intuitive analogies.`;
-      } else {
-        responseText = `Let's discuss "${message}" with a bit more depth and nuance. Since you had a smooth readthrough on the previous turn, the system has adapted to a standard prose layout.\n\n`;
-        responseText += `At this complexity tier (level ${mockComplexity}), we can explore details more thoroughly. We explain concepts in structured prose paragraphs, allowing for a comprehensive view of the topic.\n\n`;
-        responseText += `Feel free to ask follow-up questions. If you read this carefully and smoothly, the complexity will continue to rise or remain stable. If you struggle or skim, it will automatically simplify.`;
-      }
+  return parseJsonResponse(response, path);
+}
 
-      const fmtLine = mockFormat === 'bullets'
-        ? 'Structure your responses with bullet points or numbered lists when presenting multiple ideas.'
-        : 'Use clear, natural prose. You may use paragraph breaks for readability.';
-      const complexityLine = mockComplexity <= 3
-        ? 'Use very simple language and short sentences. Avoid jargon entirely. Explain every term you use.'
-        : mockComplexity <= 5
-          ? 'Use plain, accessible language. Avoid jargon unless necessary — define it when you use it.'
-          : mockComplexity <= 7
-            ? 'You can use moderate technical language. Assume a curious, intelligent non-expert reader.'
-            : 'Feel free to use technical depth and nuance. The user is comfortable with advanced concepts.';
-
-      resolve({
-        response_id: `resp_${Math.random().toString(36).substr(2, 9)}`,
-        text: responseText,
-        reward: Math.max(-1.0, Math.min(1.0, reward)),
-        user_profile: {
-          complexity_score: mockComplexity,
-          preferred_format: mockFormat
-        },
-        system_prompt: [
-          'You are a helpful, knowledgeable AI assistant.',
-          'You adapt your communication style based on how the user reads your responses.',
-          'Be direct and complete — answer what was asked fully.',
-          'Match your response length to the question: short questions get concise answers, complex questions get thorough explanations.',
-          fmtLine,
-          complexityLine,
-        ].join('\n'),
-      });
-    }, 800);
+export async function sendChatMessage(message, previousResponseId, gazeEvents, history = [], sessionId = null) {
+  return apiRequest('/chat', {
+    method: 'POST',
+    body: JSON.stringify({
+      user_id: 'demo_user',
+      message,
+      session_id: sessionId,
+      history,
+      previous_response_id: previousResponseId,
+      gaze_events: gazeEvents,
+    }),
   });
 }
