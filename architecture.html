@@ -5,1132 +5,618 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>FocalPoint — RSI Architecture</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
   :root {
-    --bg:        #ffffff;
-    --bg2:       #f7f7fc;
-    --bg3:       #f0f0f8;
-    --border:    #e4e4f0;
-    --border2:   #d0d0e8;
-    --text:      #18181f;
-    --text2:     #3d3d52;
-    --muted:     #7b7b99;
-    --muted2:    #a0a0bc;
-    --purple:    #7c3aed;
-    --purple-l:  #ede9fe;
-    --purple-m:  #c4b5fd;
-    --blue:      #2563eb;
-    --blue-l:    #dbeafe;
-    --green:     #16a34a;
-    --green-l:   #dcfce7;
-    --red:       #dc2626;
-    --red-l:     #fee2e2;
-    --orange:    #ea580c;
-    --orange-l:  #ffedd5;
-    --yellow:    #ca8a04;
-    --yellow-l:  #fef9c3;
-    --cyan:      #0891b2;
-    --cyan-l:    #cffafe;
+    --bg:       #ffffff;
+    --bg2:      #f7f7fc;
+    --bg3:      #f0f0f8;
+    --border:   #e4e4f0;
+    --text:     #18181f;
+    --text2:    #3d3d52;
+    --muted:    #7b7b99;
+    --purple:   #7c3aed;
+    --purple-l: #ede9fe;
+    --purple-m: #c4b5fd;
+    --blue:     #2563eb;
+    --blue-l:   #dbeafe;
+    --green:    #16a34a;
+    --green-l:  #dcfce7;
+    --red:      #dc2626;
+    --red-l:    #fee2e2;
+    --orange:   #ea580c;
+    --orange-l: #ffedd5;
+    --yellow:   #ca8a04;
+    --yellow-l: #fef9c3;
+    --cyan:     #0891b2;
+    --cyan-l:   #cffafe;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
   body {
-    background: var(--bg);
-    color: var(--text);
+    background: var(--bg); color: var(--text);
     font-family: 'Inter', system-ui, sans-serif;
-    font-size: 14px;
-    line-height: 1.6;
-    overflow-x: hidden;
+    font-size: 14px; line-height: 1.6; overflow-x: hidden;
   }
 
-  /* ─── HERO ─────────────────────────────────────────── */
+  /* ── HERO ── */
   .hero {
-    background: linear-gradient(160deg, #faf8ff 0%, #f0ebff 40%, #e8f4ff 100%);
+    background: linear-gradient(160deg, #faf8ff 0%, #eee8ff 45%, #e5f0ff 100%);
     border-bottom: 1px solid var(--border);
-    padding: 72px 64px 80px;
-    position: relative;
-    overflow: hidden;
+    padding: 56px 72px 64px; position: relative; overflow: hidden;
   }
-
   .hero::before {
-    content: '';
-    position: absolute;
-    top: -120px; right: -120px;
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(124,58,237,0.07) 0%, transparent 70%);
-    border-radius: 50%;
-    pointer-events: none;
+    content: ''; position: absolute; top: -120px; right: -80px;
+    width: 480px; height: 480px;
+    background: radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%);
+    border-radius: 50%; pointer-events: none;
   }
-
-  .hero::after {
-    content: '';
-    position: absolute;
-    bottom: -80px; left: 20%;
-    width: 340px; height: 340px;
-    background: radial-gradient(circle, rgba(8,145,178,0.05) 0%, transparent 70%);
-    border-radius: 50%;
-    pointer-events: none;
-  }
-
-  .hero-inner {
-    max-width: 1160px;
-    margin: 0 auto;
-    position: relative;
-  }
-
+  .hero-inner { max-width: 1200px; margin: 0 auto; position: relative; display: flex; align-items: center; gap: 64px; }
+  .hero-text { flex: 1; }
   .hero-eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--purple-l);
-    border: 1px solid var(--purple-m);
-    color: var(--purple);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    padding: 5px 14px;
-    border-radius: 99px;
-    margin-bottom: 24px;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--purple-l); border: 1px solid var(--purple-m);
+    color: var(--purple); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 5px 14px; border-radius: 99px; margin-bottom: 20px;
   }
-
   .hero-title {
-    font-size: 52px;
-    font-weight: 800;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-    color: var(--text);
-    margin-bottom: 10px;
+    font-size: 54px; font-weight: 900; line-height: 1.05;
+    letter-spacing: -0.03em; color: var(--text); margin-bottom: 16px;
   }
-
-  .hero-title .rsi {
-    background: linear-gradient(135deg, var(--purple), var(--cyan));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  .hero-title .grad {
+    background: linear-gradient(135deg, var(--purple) 0%, #a855f7 50%, var(--cyan) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   }
-
-  .hero-sub {
-    font-size: 17px;
-    color: var(--text2);
-    max-width: 600px;
-    line-height: 1.7;
-    margin-bottom: 32px;
-    font-weight: 400;
+  .hero-pills { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 16px; border-radius: 99px;
+    font-size: 12px; font-weight: 600; border: 1px solid;
   }
+  .pill-purple { background: var(--purple-l); color: var(--purple); border-color: var(--purple-m); }
+  .pill-blue   { background: var(--blue-l);   color: var(--blue);   border-color: #93c5fd; }
+  .pill-green  { background: var(--green-l);  color: var(--green);  border-color: #86efac; }
+  .pill-cyan   { background: var(--cyan-l);   color: var(--cyan);   border-color: #67e8f9; }
 
-  .hero-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 99px;
-    font-size: 12px;
-    font-weight: 600;
-    border: 1px solid;
-  }
-
-  .tag-purple { background: var(--purple-l); color: var(--purple); border-color: var(--purple-m); }
-  .tag-blue   { background: var(--blue-l);   color: var(--blue);   border-color: #93c5fd; }
-  .tag-green  { background: var(--green-l);  color: var(--green);  border-color: #86efac; }
-  .tag-cyan   { background: var(--cyan-l);   color: var(--cyan);   border-color: #67e8f9; }
-
-  /* ─── LAYOUT ─────────────────────────────────────────── */
-  .page {
-    max-width: 1160px;
-    margin: 0 auto;
-    padding: 72px 64px;
-  }
-
-  .section {
-    margin-bottom: 88px;
-  }
-
-  .section-header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 36px;
-  }
-
+  /* ── PAGE ── */
+  .page { max-width: 1200px; margin: 0 auto; padding: 64px 72px; }
+  .section { margin-bottom: 80px; }
+  .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 36px; }
   .section-num {
-    width: 28px; height: 28px;
-    border-radius: 8px;
-    background: var(--purple);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
+    width: 32px; height: 32px; border-radius: 9px;
+    background: var(--purple); color: #fff;
+    font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
+  .section-title { font-size: 24px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
+  .section-sub   { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .divider { height: 1px; background: linear-gradient(90deg, transparent, var(--purple-m), transparent); margin: 0 0 80px; }
 
-  .section-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.01em;
-  }
-
-  .section-sub {
-    font-size: 14px;
-    color: var(--muted);
-    margin-top: 2px;
-  }
-
-  /* ─── RSI HERO DIAGRAM ─────────────────────────────── */
-  .rsi-hero {
-    display: grid;
-    grid-template-columns: 420px 1fr;
-    gap: 48px;
-    align-items: center;
-    background: linear-gradient(135deg, #faf8ff, #f0f7ff);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 48px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .rsi-hero::before {
-    content: 'RSI';
-    position: absolute;
-    right: -20px; bottom: -30px;
-    font-size: 180px;
-    font-weight: 900;
-    color: rgba(124,58,237,0.04);
-    letter-spacing: -0.05em;
-    pointer-events: none;
-    font-family: 'Inter', sans-serif;
-    line-height: 1;
-  }
-
-  .rsi-svg-wrap {
-    position: relative;
-    width: 420px;
-    height: 420px;
-    flex-shrink: 0;
-  }
-
-  .rsi-svg-wrap svg {
-    width: 100%; height: 100%;
-  }
-
-  @keyframes orbit {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
-  }
-
-  @keyframes orbitRev {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(-360deg); }
-  }
-
-  @keyframes breathe {
-    0%, 100% { opacity: 0.5; transform: scale(1); }
-    50%       { opacity: 1;   transform: scale(1.04); }
-  }
-
-  @keyframes fadeSlideUp {
-    from { opacity: 0; transform: translateY(16px); }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  .rsi-steps-list {
+  /* ════════════════════════════════════════
+     SNAKE WORKFLOW
+  ════════════════════════════════════════ */
+  .snake { display: flex; flex-direction: column; gap: 0; }
+
+  /* each row */
+  .snake-row {
     display: flex;
-    flex-direction: column;
-    gap: 14px;
-    position: relative;
+    align-items: stretch;
   }
+  .snake-row.rev { flex-direction: row-reverse; }
 
-  .rsi-steps-list::before {
-    content: '';
-    position: absolute;
-    left: 13px; top: 28px; bottom: 28px;
-    width: 1px;
-    background: linear-gradient(180deg, var(--purple-m), transparent);
-  }
-
-  .rsi-step {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-    animation: fadeSlideUp 0.4s ease both;
-  }
-
-  .rsi-step:nth-child(1) { animation-delay: 0.05s; }
-  .rsi-step:nth-child(2) { animation-delay: 0.10s; }
-  .rsi-step:nth-child(3) { animation-delay: 0.15s; }
-  .rsi-step:nth-child(4) { animation-delay: 0.20s; }
-  .rsi-step:nth-child(5) { animation-delay: 0.25s; }
-  .rsi-step:nth-child(6) { animation-delay: 0.30s; }
-
-  .rsi-step-num {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    background: #fff;
-    border: 1.5px solid var(--purple-m);
-    color: var(--purple);
-    font-size: 12px;
-    font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 1;
-  }
-
-  .rsi-step-content { flex: 1; padding-top: 3px; }
-
-  .rsi-step-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 2px;
-  }
-
-  .rsi-step-desc {
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.55;
-  }
-
-  .rsi-step-desc strong { color: var(--text2); font-weight: 500; }
-
-  /* ─── LOOP CARDS (6-step) ─────────────────────────── */
-  .loop-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-  }
-
-  .loop-card {
+  /* node card */
+  .wf-node {
+    flex: 1;
     background: #fff;
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 22px;
-    position: relative;
     overflow: hidden;
     box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    animation: fadeUp 0.4s ease both;
     transition: box-shadow 0.2s, transform 0.2s;
-    animation: fadeSlideUp 0.4s ease both;
+    display: flex; flex-direction: column;
   }
+  .wf-node:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
 
-  .loop-card:hover {
-    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-    transform: translateY(-2px);
-  }
-
-  .loop-card-top {
-    height: 3px;
-    border-radius: 3px 3px 0 0;
-    position: absolute;
-    top: 0; left: 0; right: 0;
-  }
-
-  .loop-card-step {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted2);
-    margin-bottom: 10px;
-  }
-
-  .loop-card-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--text);
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .loop-card-icon {
-    width: 30px; height: 30px;
-    border-radius: 9px;
+  .wf-top { height: 4px; }
+  .wf-body { padding: 18px 20px 20px; flex: 1; }
+  .wf-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .wf-num {
+    width: 22px; height: 22px; border-radius: 6px;
+    font-size: 11px; font-weight: 800;
     display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-    flex-shrink: 0;
+    flex-shrink: 0; color: #fff;
+  }
+  .wf-layer { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .wf-icon  { font-size: 26px; margin-bottom: 8px; display: block; }
+  .wf-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+  .wf-ul { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  .wf-ul li { font-size: 12px; color: var(--muted); padding-left: 14px; position: relative; line-height: 1.45; }
+  .wf-ul li::before { content: '·'; position: absolute; left: 0; font-weight: 900; color: var(--muted); }
+  .wf-ul li strong { color: var(--text2); font-weight: 600; }
+  .wf-code { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 7px 10px; color: var(--text2); line-height: 1.8; }
+
+  /* arrow connector between nodes */
+  .wf-arrow {
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; flex-shrink: 0; position: relative;
+  }
+  .wf-arrow::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 0; right: 0;
+    height: 2px;
+    background: var(--border);
+    transform: translateY(-50%);
+  }
+  .wf-arrow::after {
+    content: '';
+    position: absolute;
+    top: 50%; right: 2px;
+    transform: translateY(-50%);
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 8px solid var(--border);
+  }
+  .snake-row.rev .wf-arrow::after {
+    right: auto; left: 2px;
+    border-left: none;
+    border-right: 8px solid var(--border);
   }
 
-  .loop-card-desc {
-    font-size: 12.5px;
-    color: var(--muted);
-    line-height: 1.6;
-    margin-bottom: 12px;
+  /* bend connector between the two rows */
+  .snake-bend {
+    display: flex;
+    height: 48px;
+    align-items: stretch;
+  }
+  .snake-bend-spacer { flex: 1; } /* fills left 2/3 of row 1 width */
+  .snake-bend-corner {
+    /* matches one node width (flex:1) + two arrows on row 1 right side */
+    flex: 1;
+    border-right: 2px solid var(--border);
+    border-bottom: 2px solid var(--border);
+    border-bottom-right-radius: 16px;
+  }
+  .snake-bend-arrow {
+    width: 36px; flex-shrink: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-end;
+    padding-bottom: 2px;
+  }
+  .snake-bend-arrow::before {
+    content: '';
+    display: block;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 8px solid var(--border);
   }
 
-  .code-snip {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 9px 11px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--text2);
-    line-height: 1.7;
-  }
-
-  .ch-purple { color: var(--purple); font-weight: 600; }
-  .ch-blue   { color: var(--blue); }
-  .ch-green  { color: var(--green); font-weight: 600; }
-  .ch-red    { color: var(--red); }
-  .ch-orange { color: var(--orange); }
-  .ch-cyan   { color: var(--cyan); }
-  .ch-muted  { color: var(--muted2); font-style: italic; }
-
-  /* ─── THREE AGENTS ─────────────────────────────────── */
-  .agents-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-  }
-
+  /* ── AGENTS ── */
+  .agents-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
   .agent-card {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    overflow: hidden;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-    animation: fadeSlideUp 0.5s ease both;
+    background: #fff; border: 1px solid var(--border); border-radius: 20px; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04); animation: fadeUp 0.5s ease both;
     transition: box-shadow 0.2s, transform 0.2s;
   }
-
-  .agent-card:hover {
-    box-shadow: 0 8px 28px rgba(0,0,0,0.08);
-    transform: translateY(-3px);
-  }
-
-  .agent-card-band {
-    height: 5px;
-  }
-
-  .agent-card-header {
-    padding: 22px 24px 16px;
-    border-bottom: 1px solid var(--border);
-  }
-
+  .agent-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,0.08); transform: translateY(-3px); }
+  .agent-band { height: 6px; }
+  .agent-header { padding: 22px 24px 16px; border-bottom: 1px solid var(--border); }
   .agent-timing {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    padding: 3px 10px;
-    border-radius: 99px;
-    border: 1px solid;
-    margin-bottom: 12px;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 4px 12px; border-radius: 99px; border: 1px solid; margin-bottom: 14px;
   }
-
   .timing-green  { background: var(--green-l);  color: var(--green);  border-color: #86efac; }
   .timing-blue   { background: var(--blue-l);   color: var(--blue);   border-color: #93c5fd; }
   .timing-purple { background: var(--purple-l); color: var(--purple); border-color: var(--purple-m); }
+  .agent-emoji { font-size: 32px; margin-bottom: 10px; display: block; }
+  .agent-name { font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+  .agent-file { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--muted); }
+  .agent-body { padding: 18px 24px 20px; }
+  .agent-ul { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+  .agent-ul li { font-size: 13px; color: var(--muted); padding-left: 16px; position: relative; line-height: 1.5; }
+  .agent-ul li::before { content: '▸'; position: absolute; left: 0; font-size: 10px; top: 2px; }
+  .agent-ul li strong { color: var(--text2); font-weight: 600; }
+  .agent-ul.gu li::before { color: var(--green); }
+  .agent-ul.bu li::before { color: var(--blue); }
+  .agent-ul.pu li::before { color: var(--purple); }
 
-  .agent-name {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text);
-    margin-bottom: 4px;
-  }
-
-  .agent-file {
-    font-size: 11px;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--muted);
-  }
-
-  .agent-body {
-    padding: 20px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .agent-point {
-    display: flex;
-    gap: 10px;
-    font-size: 13px;
-    line-height: 1.55;
-  }
-
-  .agent-point-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    margin-top: 6px;
-  }
-
-  .agent-point-text { color: var(--muted); }
-  .agent-point-text strong { color: var(--text2); font-weight: 500; }
-
-  /* ─── MEMORY LAYERS ─────────────────────────────────── */
-  .memory-row {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
+  /* ── MEMORY ── */
+  .memory-grid { display: flex; flex-direction: column; gap: 10px; }
   .memory-item {
-    display: grid;
-    grid-template-columns: 32px 180px 1fr 260px;
-    align-items: center;
-    gap: 20px;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px 22px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    display: grid; grid-template-columns: 44px 200px 1fr 260px;
+    align-items: center; gap: 24px;
+    background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 18px 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03); animation: fadeUp 0.4s ease both;
     transition: box-shadow 0.2s, transform 0.2s;
-    animation: fadeSlideUp 0.4s ease both;
   }
+  .memory-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); transform: translateX(4px); }
+  .mem-num { width: 36px; height: 36px; border-radius: 10px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .mem-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .mem-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+  .mem-list li { font-size: 12px; color: var(--muted); padding-left: 12px; position: relative; }
+  .mem-list li::before { content: '·'; position: absolute; left: 0; font-weight: 700; }
+  .mem-list strong { color: var(--text2); }
+  .mem-code { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text2); background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; line-height: 1.7; }
 
-  .memory-item:hover {
-    box-shadow: 0 4px 14px rgba(0,0,0,0.07);
-    transform: translateX(3px);
-  }
-
-  .memory-layer-num {
-    width: 28px; height: 28px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .memory-layer-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  .memory-layer-desc {
-    font-size: 12.5px;
-    color: var(--muted);
-    line-height: 1.55;
-  }
-
-  .memory-layer-code {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--text2);
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 8px 12px;
-    line-height: 1.7;
-  }
-
-  .memory-item:nth-child(1) { animation-delay: 0.05s; }
-  .memory-item:nth-child(2) { animation-delay: 0.10s; }
-  .memory-item:nth-child(3) { animation-delay: 0.15s; }
-  .memory-item:nth-child(4) { animation-delay: 0.20s; }
-  .memory-item:nth-child(5) { animation-delay: 0.25s; }
-  .memory-item:nth-child(6) { animation-delay: 0.30s; }
-
-  /* ─── REWARD CARDS ──────────────────────────────────── */
-  .reward-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-  }
-
+  /* ── REWARD ── */
+  .reward-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
   .reward-card {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 24px;
-    text-align: center;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-    transition: box-shadow 0.2s, transform 0.2s;
-    animation: fadeSlideUp 0.5s ease both;
+    background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 28px 20px;
+    text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    animation: fadeUp 0.5s ease both; transition: box-shadow 0.2s, transform 0.2s;
   }
-
-  .reward-card:hover {
-    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-    transform: translateY(-2px);
-  }
-
+  .reward-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.08); transform: translateY(-2px); }
   .reward-badge {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 4px 12px;
-    border-radius: 99px;
-    border: 1px solid;
-    margin-bottom: 16px;
+    display: inline-block; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 4px 14px; border-radius: 99px; border: 1px solid; margin-bottom: 18px;
   }
+  .reward-score { font-size: 44px; font-weight: 900; font-family: 'JetBrains Mono', monospace; letter-spacing: -0.02em; margin-bottom: 14px; }
+  .reward-ul { list-style: none; text-align: left; display: flex; flex-direction: column; gap: 6px; margin-top: 14px; border-top: 1px solid var(--border); padding-top: 14px; }
+  .reward-ul li { font-size: 12px; color: var(--muted); padding-left: 14px; position: relative; }
+  .reward-ul li::before { content: '→'; position: absolute; left: 0; font-size: 10px; }
+  .reward-ul li strong { color: var(--text2); font-weight: 600; }
 
-  .reward-score {
-    font-size: 36px;
-    font-weight: 800;
-    font-family: 'JetBrains Mono', monospace;
-    margin-bottom: 10px;
-    letter-spacing: -0.02em;
-  }
-
-  .reward-behavior {
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.55;
-    margin-bottom: 14px;
-  }
-
-  .reward-action {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text2);
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 10px;
-    line-height: 1.5;
-  }
-
-  /* ─── STACK ──────────────────────────────────────────── */
-  .stack-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-  }
-
-  .stack-card {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-    animation: fadeSlideUp 0.5s ease both;
-  }
-
-  .stack-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 16px 22px;
-    border-bottom: 1px solid var(--border);
-    font-size: 14px;
-    font-weight: 600;
-    background: var(--bg2);
-  }
-
-  .stack-icon {
-    width: 30px; height: 30px;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 15px;
-  }
-
-  .stack-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 11px 22px;
-    border-bottom: 1px solid var(--border);
-  }
+  /* ── STACK ── */
+  .stack-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  .stack-card { background: #fff; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04); animation: fadeUp 0.5s ease both; }
+  .stack-header { display: flex; align-items: center; gap: 10px; padding: 16px 22px; border-bottom: 1px solid var(--border); font-size: 14px; font-weight: 700; background: var(--bg2); }
+  .stack-icon { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .stack-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 22px; border-bottom: 1px solid var(--border); }
   .stack-row:last-child { border-bottom: none; }
   .stack-key { font-size: 12.5px; color: var(--muted); }
-  .stack-val { font-size: 12px; font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+  .stack-val { font-size: 12px; font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .api-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .api-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+  .api-header { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--border); background: var(--bg2); font-size: 12.5px; font-weight: 600; color: var(--text2); }
+  .api-method { font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 4px; background: var(--green-l); color: var(--green); border: 1px solid #86efac; letter-spacing: 0.05em; }
+  .api-code { padding: 16px 18px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; line-height: 1.85; color: var(--text2); white-space: pre; overflow-x: auto; background: #fefefe; }
+  .k { color: var(--blue); } .v { color: var(--green); font-weight: 600; } .s { color: var(--red); } .c { color: var(--muted); font-style: italic; } .p { color: var(--purple); font-weight: 600; }
 
-  /* ─── API ─────────────────────────────────────────────── */
-  .api-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-  }
-
-  .api-card {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-  }
-
-  .api-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 11px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg2);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text2);
-  }
-
-  .api-method {
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 4px;
-    background: var(--green-l);
-    color: var(--green);
-    border: 1px solid #86efac;
-    letter-spacing: 0.05em;
-  }
-
-  .api-code {
-    padding: 16px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11.5px;
-    line-height: 1.8;
-    color: var(--text2);
-    white-space: pre;
-    overflow-x: auto;
-    background: #fefefe;
-  }
-
-  .k { color: var(--blue); }
-  .v { color: var(--green); font-weight: 600; }
-  .s { color: var(--red); }
-  .c { color: var(--muted2); font-style: italic; }
-  .p { color: var(--purple); font-weight: 600; }
-
-  /* ─── DIVIDER ─────────────────────────────────────────── */
-  .divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--purple-m), transparent);
-    margin: 0 0 88px 0;
-  }
-
-  /* ─── FOOTER ──────────────────────────────────────────── */
   footer {
-    background: var(--bg2);
-    border-top: 1px solid var(--border);
-    padding: 28px 64px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    color: var(--muted);
-    font-size: 12px;
+    background: var(--bg2); border-top: 1px solid var(--border);
+    padding: 24px 72px; display: flex; align-items: center;
+    justify-content: space-between; color: var(--muted); font-size: 12px;
   }
-
-  footer strong { color: var(--purple); font-weight: 600; }
+  footer strong { color: var(--purple); font-weight: 700; }
 </style>
 </head>
 <body>
 
-<!-- ── HERO ── -->
+<!-- HERO -->
 <div class="hero">
   <div class="hero-inner">
-    <div class="hero-eyebrow">◎ AIEWF 2026 · Architecture Deep-Dive</div>
-    <div class="hero-title">
-      FocalPoint is <span class="rsi">Recursive<br>Self-Improvement</span>
+    <div class="hero-text">
+      <div class="hero-eyebrow">◎ AIEWF 2026 · Architecture</div>
+      <div class="hero-title">FocalPoint is<br><span class="grad">Recursive<br>Self-Improvement</span></div>
+      <div class="hero-pills">
+        <span class="pill pill-purple">◈ RSI Loop</span>
+        <span class="pill pill-blue">Implicit RLHF</span>
+        <span class="pill pill-cyan">Antigravity Agent</span>
+        <span class="pill pill-green">6-Layer Memory</span>
+      </div>
     </div>
-    <div class="hero-sub">
-      Every response you read trains the next one. Eye-tracking replaces human raters.
-      The system rewrites its own instructions — no fine-tuning, no human labels.
-    </div>
-    <div class="hero-tags">
-      <span class="tag tag-purple">◈ RSI Loop</span>
-      <span class="tag tag-blue">Implicit RLHF</span>
-      <span class="tag tag-cyan">Antigravity Meta-Agent</span>
-      <span class="tag tag-green">6-Layer Cognitive Memory</span>
-    </div>
+    <svg width="240" height="240" viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;opacity:0.88">
+      <circle cx="130" cy="130" r="108" stroke="#ede9fe" stroke-width="28"/>
+      <circle cx="130" cy="130" r="108" stroke="#d8d0f8" stroke-width="1.5"/>
+      <circle cx="130" cy="130" r="108" stroke="url(#hg1)" stroke-width="3" stroke-dasharray="12 205" stroke-linecap="round">
+        <animateTransform attributeName="transform" type="rotate" from="0 130 130" to="360 130 130" dur="4s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="130" cy="130" r="108" stroke="url(#hg2)" stroke-width="3" stroke-dasharray="8 205" stroke-linecap="round">
+        <animateTransform attributeName="transform" type="rotate" from="180 130 130" to="-180 130 130" dur="6s" repeatCount="indefinite"/>
+      </circle>
+      <defs>
+        <linearGradient id="hg1"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#c4b5fd"/></linearGradient>
+        <linearGradient id="hg2"><stop stop-color="#0891b2"/><stop offset="1" stop-color="#67e8f9"/></linearGradient>
+      </defs>
+      <circle cx="130" cy="130" r="38" fill="#faf8ff" stroke="#c4b5fd" stroke-width="1.5">
+        <animate attributeName="r" values="36;40;36" dur="3s" repeatCount="indefinite"/>
+      </circle>
+      <text x="130" y="124" text-anchor="middle" fill="#a78bfa" font-size="9" font-family="Inter" font-weight="600" letter-spacing="2">THE</text>
+      <text x="130" y="138" text-anchor="middle" fill="#7c3aed" font-size="18" font-family="Inter" font-weight="900">RSI</text>
+      <text x="130" y="152" text-anchor="middle" fill="#a78bfa" font-size="9" font-family="Inter" font-weight="600" letter-spacing="2">LOOP</text>
+      <circle cx="130" cy="22" r="18" fill="white" stroke="#93c5fd" stroke-width="1.5"/>
+      <text x="130" y="28" text-anchor="middle" font-size="13">👁️</text>
+      <circle cx="218" cy="68" r="18" fill="white" stroke="#67e8f9" stroke-width="1.5"/>
+      <text x="218" y="74" text-anchor="middle" font-size="13">🎯</text>
+      <circle cx="218" cy="192" r="18" fill="white" stroke="#fca5a5" stroke-width="1.5"/>
+      <text x="218" y="198" text-anchor="middle" font-size="13">⚡</text>
+      <circle cx="130" cy="238" r="18" fill="white" stroke="#86efac" stroke-width="1.5"/>
+      <text x="130" y="244" text-anchor="middle" font-size="13">🗄️</text>
+      <circle cx="42" cy="192" r="18" fill="white" stroke="#c4b5fd" stroke-width="1.5"/>
+      <text x="42" y="198" text-anchor="middle" font-size="13">⚙️</text>
+      <circle cx="42" cy="68" r="18" fill="white" stroke="#c4b5fd" stroke-width="1.5"/>
+      <text x="42" y="74" text-anchor="middle" font-size="13">✨</text>
+    </svg>
   </div>
 </div>
 
 <div class="page">
 
-  <!-- ── SECTION 1: RSI EXPLAINED ── -->
+  <!-- ══ 1. TURN-BY-TURN WORKFLOW ══ -->
   <div class="section">
     <div class="section-header">
       <div class="section-num">1</div>
       <div>
-        <div class="section-title">What Makes This RSI</div>
-        <div class="section-sub">The system modifies the parameters that control its own future behavior</div>
+        <div class="section-title">Turn-by-Turn RSI Loop</div>
+        <div class="section-sub">Six steps that fire on every single message — the inner RSI cycle</div>
       </div>
     </div>
 
-    <div class="rsi-hero">
-      <!-- Animated SVG loop -->
-      <div class="rsi-svg-wrap">
-        <svg viewBox="0 0 420 420" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- Outer glow -->
-          <circle cx="210" cy="210" r="178" stroke="#ede9fe" stroke-width="36"/>
-          <!-- Track -->
-          <circle cx="210" cy="210" r="178" stroke="#d8d0f8" stroke-width="1.5"/>
-          <!-- Animated flow — clockwise purple -->
-          <circle cx="210" cy="210" r="178"
-            stroke="url(#grad1)" stroke-width="3"
-            stroke-dasharray="14 340" stroke-linecap="round">
-            <animateTransform attributeName="transform" type="rotate"
-              from="0 210 210" to="360 210 210" dur="5s" repeatCount="indefinite"/>
-          </circle>
-          <!-- Animated flow — counter cyan -->
-          <circle cx="210" cy="210" r="178"
-            stroke="url(#grad2)" stroke-width="3"
-            stroke-dasharray="10 340" stroke-linecap="round">
-            <animateTransform attributeName="transform" type="rotate"
-              from="180 210 210" to="-180 210 210" dur="7s" repeatCount="indefinite"/>
-          </circle>
+    <div class="snake">
 
-          <defs>
-            <linearGradient id="grad1" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="#7c3aed"/>
-              <stop offset="100%" stop-color="#c4b5fd"/>
-            </linearGradient>
-            <linearGradient id="grad2" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="#0891b2"/>
-              <stop offset="100%" stop-color="#67e8f9"/>
-            </linearGradient>
-          </defs>
+      <!-- ROW 1: steps 1 → 2 → 3 -->
+      <div class="snake-row">
 
-          <!-- Inner ring -->
-          <circle cx="210" cy="210" r="108" stroke="#f0ebff" stroke-width="1"/>
-          <!-- Center pulse -->
-          <circle cx="210" cy="210" r="62" fill="#faf8ff" stroke="#c4b5fd" stroke-width="1.5">
-            <animate attributeName="r" values="60;64;60" dur="3s" repeatCount="indefinite"/>
-            <animate attributeName="stroke-opacity" values="0.6;1;0.6" dur="3s" repeatCount="indefinite"/>
-          </circle>
-          <text x="210" y="203" text-anchor="middle" fill="#a78bfa" font-size="10" font-family="Inter" font-weight="600" letter-spacing="2">THE</text>
-          <text x="210" y="218" text-anchor="middle" fill="#7c3aed" font-size="15" font-family="Inter" font-weight="800">RSI</text>
-          <text x="210" y="233" text-anchor="middle" fill="#a78bfa" font-size="10" font-family="Inter" font-weight="600" letter-spacing="2">LOOP</text>
+        <div class="wf-node" style="animation-delay:.05s">
+          <div class="wf-top" style="background:#2563eb"></div>
+          <div class="wf-body">
+            <div class="wf-meta">
+              <div class="wf-num" style="background:#2563eb">1</div>
+              <span class="wf-layer">Frontend</span>
+            </div>
+            <span class="wf-icon">👁️</span>
+            <div class="wf-title">User Reads</div>
+            <ul class="wf-ul">
+              <li>WebGazer streams (x,y) at ~30Hz</li>
+              <li><strong>Dynamic EMA</strong> — α adapts by gaze velocity</li>
+              <li>Fixation min 180ms · log every 450ms</li>
+            </ul>
+            <div class="wf-code">webgazer.setGazeListener(…)</div>
+          </div>
+        </div>
 
-          <!-- Node: USER (top) -->
-          <circle cx="210" cy="32" r="30" fill="white" stroke="#93c5fd" stroke-width="1.5" filter="url(#shadow)"/>
-          <text x="210" y="26" text-anchor="middle" font-size="16">👁️</text>
-          <text x="210" y="41" text-anchor="middle" fill="#2563eb" font-size="9" font-family="Inter" font-weight="700">USER READS</text>
+        <div class="wf-arrow"></div>
 
-          <!-- Node: GAZE (right-top) -->
-          <circle cx="354" cy="100" r="30" fill="white" stroke="#67e8f9" stroke-width="1.5"/>
-          <text x="354" y="94" text-anchor="middle" font-size="16">🎯</text>
-          <text x="354" y="109" text-anchor="middle" fill="#0891b2" font-size="9" font-family="Inter" font-weight="700">GAZE ZONES</text>
+        <div class="wf-node" style="animation-delay:.10s">
+          <div class="wf-top" style="background:#0891b2"></div>
+          <div class="wf-body">
+            <div class="wf-meta">
+              <div class="wf-num" style="background:#0891b2">2</div>
+              <span class="wf-layer">Frontend</span>
+            </div>
+            <span class="wf-icon">🎯</span>
+            <div class="wf-title">Gaze → Zone</div>
+            <ul class="wf-ul">
+              <li><strong>elementFromPoint(x,y)</strong> hits data-zone spans</li>
+              <li>Timestamps logged per line zone</li>
+              <li>Time-based: actual vs expected read time</li>
+            </ul>
+            <div class="wf-code">zoneLog[zone].push(ts)</div>
+          </div>
+        </div>
 
-          <!-- Node: REWARD (right-bottom) -->
-          <circle cx="354" cy="320" r="30" fill="white" stroke="#fca5a5" stroke-width="1.5"/>
-          <text x="354" y="314" text-anchor="middle" font-size="16">⚡</text>
-          <text x="354" y="329" text-anchor="middle" fill="#dc2626" font-size="9" font-family="Inter" font-weight="700">REWARD</text>
+        <div class="wf-arrow"></div>
 
-          <!-- Node: MEMORY (bottom) -->
-          <circle cx="210" cy="388" r="30" fill="white" stroke="#86efac" stroke-width="1.5"/>
-          <text x="210" y="382" text-anchor="middle" font-size="16">🗄️</text>
-          <text x="210" y="397" text-anchor="middle" fill="#16a34a" font-size="9" font-family="Inter" font-weight="700">MEMORY</text>
+        <div class="wf-node" style="animation-delay:.15s">
+          <div class="wf-top" style="background:#ca8a04"></div>
+          <div class="wf-body">
+            <div class="wf-meta">
+              <div class="wf-num" style="background:#ca8a04">3</div>
+              <span class="wf-layer">Frontend → Backend</span>
+            </div>
+            <span class="wf-icon">📡</span>
+            <div class="wf-title">Gaze Events Sent</div>
+            <ul class="wf-ul">
+              <li>Zones → <strong>smooth / confusion / skim / skipped</strong></li>
+              <li>Sent with next message via POST /chat</li>
+              <li>Linked to previous response ID</li>
+            </ul>
+            <div class="wf-code">{ zone, visits, flag }</div>
+          </div>
+        </div>
 
-          <!-- Node: PROMPT (left-bottom) -->
-          <circle cx="66" cy="320" r="30" fill="white" stroke="#c4b5fd" stroke-width="1.5"/>
-          <text x="66" y="314" text-anchor="middle" font-size="16">⚙️</text>
-          <text x="66" y="329" text-anchor="middle" fill="#7c3aed" font-size="9" font-family="Inter" font-weight="700">PROMPT</text>
+      </div><!-- /snake-row 1 -->
 
-          <!-- Node: GEMINI (left-top) -->
-          <circle cx="66" cy="100" r="30" fill="white" stroke="#c4b5fd" stroke-width="1.5"/>
-          <text x="66" y="94" text-anchor="middle" font-size="16">✨</text>
-          <text x="66" y="109" text-anchor="middle" fill="#7c3aed" font-size="9" font-family="Inter" font-weight="700">GEMINI</text>
-
-          <!-- Meta-agent badge -->
-          <rect x="152" y="280" width="116" height="32" rx="8" fill="#faf8ff" stroke="#c4b5fd" stroke-width="1" stroke-dasharray="4 3"/>
-          <text x="210" y="299" text-anchor="middle" fill="#7c3aed" font-size="10" font-family="Inter" font-weight="600">🔁 META-AGENT</text>
-          <text x="210" y="311" text-anchor="middle" fill="#a78bfa" font-size="8" font-family="Inter">session end → RSI</text>
-        </svg>
+      <!-- BEND -->
+      <div class="snake-bend">
+        <div class="snake-bend-spacer"></div>
+        <div class="snake-bend-spacer"></div><!-- two spacers = 2/3 of row -->
+        <div class="snake-bend-corner"></div>
+        <div class="snake-bend-arrow"></div>
       </div>
 
-      <!-- Steps -->
-      <div class="rsi-steps-list">
-        <div class="rsi-step">
-          <div class="rsi-step-num">1</div>
-          <div class="rsi-step-content">
-            <div class="rsi-step-title">Gaze is the reward signal</div>
-            <div class="rsi-step-desc">WebGazer.js streams gaze coordinates. FocalPoint maps them to paragraph zones — no thumbs up/down, no ratings. <strong>Reading behavior is the implicit reward.</strong></div>
+      <!-- ROW 2: steps 4 ← 5 ← 6  (displayed reversed so 4 is on the right) -->
+      <div class="snake-row rev">
+
+        <div class="wf-node" style="animation-delay:.20s">
+          <div class="wf-top" style="background:#dc2626"></div>
+          <div class="wf-body">
+            <div class="wf-meta">
+              <div class="wf-num" style="background:#dc2626">4</div>
+              <span class="wf-layer">Backend · reward.py</span>
+            </div>
+            <span class="wf-icon">⚡</span>
+            <div class="wf-title">Reward Computed</div>
+            <ul class="wf-ul">
+              <li>Scalar = Σ(flag_scores) / n</li>
+              <li><strong>Profile updated before Gemini is called</strong></li>
+              <li>Confusion intensity amplifies penalty</li>
+            </ul>
+            <div class="wf-code">reward ∈ [−1.0, +1.0]</div>
           </div>
         </div>
-        <div class="rsi-step">
-          <div class="rsi-step-num">2</div>
-          <div class="rsi-step-content">
-            <div class="rsi-step-title">Reward updates the user profile</div>
-            <div class="rsi-step-desc">smooth=+1.0, confusion=−0.5, skim=−0.3, skipped=−0.2. Negative reward → <strong>complexity drops, topics flagged, format switches to bullets.</strong></div>
+
+        <div class="wf-arrow"></div>
+
+        <div class="wf-node" style="animation-delay:.25s">
+          <div class="wf-top" style="background:#16a34a"></div>
+          <div class="wf-body">
+            <div class="wf-meta">
+              <div class="wf-num" style="background:#16a34a">5</div>
+              <span class="wf-layer">Backend · MongoDB</span>
+            </div>
+            <span class="wf-icon">🗄️</span>
+            <div class="wf-title">Profile Written</div>
+            <ul class="wf-ul">
+              <li><strong>users</strong> collection — updated live</li>
+              <li><strong>episodes</strong> collection — full turn log</li>
+              <li>Meta-agent reads episodes at session end</li>
+            </ul>
+            <div class="wf-code">users.$set({ complexity: 4 })</div>
           </div>
         </div>
-        <div class="rsi-step">
-          <div class="rsi-step-num">3</div>
-          <div class="rsi-step-content">
-            <div class="rsi-step-title">The system prompt is the "weights"</div>
-            <div class="rsi-step-desc">No fine-tuning happens. Instead, <strong>the system prompt is rebuilt from the updated profile before every Gemini call</strong> — translating profile fields into natural language instructions.</div>
+
+        <div class="wf-arrow"></div>
+
+        <div class="wf-node" style="animation-delay:.30s">
+          <div class="wf-top" style="background:#7c3aed"></div>
+          <div class="wf-body">
+            <div class="wf-meta">
+              <div class="wf-num" style="background:#7c3aed">6</div>
+              <span class="wf-layer">Backend · Gemini</span>
+            </div>
+            <span class="wf-icon">✨</span>
+            <div class="wf-title">Adapted Response</div>
+            <ul class="wf-ul">
+              <li>System prompt rebuilt from updated profile</li>
+              <li><strong>Different instructions from the turn before</strong></li>
+              <li>Same model — different effective behavior</li>
+            </ul>
+            <div class="wf-code">gemini-3.5-flash(new_prompt)</div>
           </div>
         </div>
-        <div class="rsi-step">
-          <div class="rsi-step-num">4</div>
-          <div class="rsi-step-content">
-            <div class="rsi-step-title">Every response is a different model</div>
-            <div class="rsi-step-desc">Gemini receives a different system prompt each turn. The same base model behaves differently because <strong>its instructions encode everything learned about this user.</strong></div>
-          </div>
-        </div>
-        <div class="rsi-step">
-          <div class="rsi-step-num">5</div>
-          <div class="rsi-step-content">
-            <div class="rsi-step-title">Meta-agent closes the outer loop</div>
-            <div class="rsi-step-desc">At session end, <strong>Google Antigravity</strong> analyzes the full trajectory and makes higher-order corrections — catching patterns the per-turn agent misses. Writes prospective flags for next session.</div>
-          </div>
-        </div>
-        <div class="rsi-step">
-          <div class="rsi-step-num">6</div>
-          <div class="rsi-step-content">
-            <div class="rsi-step-title">Each session starts smarter than the last</div>
-            <div class="rsi-step-desc">Prospective flags are loaded into the prompt before the user says a word. <strong>The system has already pre-adapted — that's the recursive part.</strong></div>
-          </div>
-        </div>
-      </div>
-    </div>
+
+      </div><!-- /snake-row 2 -->
+
+    </div><!-- /snake -->
   </div>
 
   <div class="divider"></div>
 
-  <!-- ── SECTION 2: THREE AGENTS ── -->
+  <!-- ══ 2. THREE AGENTS ══ -->
   <div class="section">
     <div class="section-header">
       <div class="section-num">2</div>
       <div>
         <div class="section-title">Three Agents, Three Timescales</div>
-        <div class="section-sub">RSI operates at different speeds — real-time, per-turn, and per-session</div>
+        <div class="section-sub">Real-time · per-turn · per-session</div>
       </div>
     </div>
 
     <div class="agents-grid">
-
-      <div class="agent-card">
-        <div class="agent-card-band" style="background: linear-gradient(90deg, var(--green), #86efac)"></div>
-        <div class="agent-card-header">
+      <div class="agent-card" style="animation-delay:.05s">
+        <div class="agent-band" style="background:linear-gradient(90deg,#16a34a,#86efac)"></div>
+        <div class="agent-header">
           <div class="agent-timing timing-green">⚡ Every turn · ~1ms</div>
+          <span class="agent-emoji">🛠️</span>
           <div class="agent-name">Prompt Agent</div>
           <div class="agent-file">services/prompt_builder.py</div>
         </div>
         <div class="agent-body">
-          <div class="agent-point">
-            <div class="agent-point-dot" style="background:var(--green)"></div>
-            <div class="agent-point-text">Reads the current MongoDB user profile and <strong>rebuilds the Gemini system prompt</strong> from scratch before every single API call.</div>
-          </div>
-          <div class="agent-point">
-            <div class="agent-point-dot" style="background:var(--green)"></div>
-            <div class="agent-point-text">Maps profile fields to natural language: <strong>complexity_score → vocabulary level</strong>, topics_to_simplify → targeted analogy instructions, prospective_flags → proactive strategies.</div>
-          </div>
-          <div class="agent-point">
-            <div class="agent-point-dot" style="background:var(--green)"></div>
-            <div class="agent-point-text">The system prompt is the mechanism of self-improvement. <strong>Modifying it changes behavior without touching model weights.</strong></div>
-          </div>
-          <div class="code-snip">
-<span class="ch-muted"># score=3 → "use very simple language"</span>
-<span class="ch-muted"># topics=["RSI"] → "use analogies for RSI"</span>
-<span class="ch-muted"># flags=[{action:"use_analogy"}] →</span>
-<span class="ch-muted">#   "lead with real-world analogy"</span>
-          </div>
+          <ul class="agent-ul gu">
+            <li>Reads updated MongoDB profile before every call</li>
+            <li><strong>Rebuilds system prompt from scratch</strong> each turn</li>
+            <li>complexity_score → vocabulary level</li>
+            <li>topics_to_simplify → analogy instructions</li>
+            <li>prospective_flags → proactive strategies</li>
+          </ul>
         </div>
       </div>
 
-      <div class="agent-card">
-        <div class="agent-card-band" style="background: linear-gradient(90deg, var(--blue), #93c5fd)"></div>
-        <div class="agent-card-header">
+      <div class="agent-card" style="animation-delay:.10s">
+        <div class="agent-band" style="background:linear-gradient(90deg,#2563eb,#93c5fd)"></div>
+        <div class="agent-header">
           <div class="agent-timing timing-blue">📡 Every turn · real-time</div>
+          <span class="agent-emoji">📊</span>
           <div class="agent-name">Reward Agent</div>
           <div class="agent-file">services/reward.py</div>
         </div>
         <div class="agent-body">
-          <div class="agent-point">
-            <div class="agent-point-dot" style="background:var(--blue)"></div>
-            <div class="agent-point-text">Receives gaze events from the <strong>previous response</strong> and computes a scalar reward — the implicit RLHF signal. Gaze replaces a human rater.</div>
-          </div>
-          <div class="agent-point">
-            <div class="agent-point-dot" style="background:var(--blue)"></div>
-            <div class="agent-point-text">Immediately writes updates to MongoDB: <strong>complexity_score, preferred_format, topics_to_simplify, avg_words_read, reads_to_end.</strong></div>
-          </div>
-          <div class="agent-point">
-            <div class="agent-point-dot" style="background:var(--blue)"></div>
-            <div class="agent-point-text">The Prompt Agent reads these updates on the very next turn — <strong>the loop closes in under a second.</strong></div>
-          </div>
-          <div class="code-snip">
-reward = <span class="ch-green">Σ</span>(flag_scores) / n
-<span class="ch-blue">if</span> reward &lt; 0:
-  complexity <span class="ch-red">↓</span>, format=bullets
-  topics += [<span class="ch-purple">extract_topic</span>(msg)]
-          </div>
+          <ul class="agent-ul bu">
+            <li>Receives gaze events from <strong>previous response</strong></li>
+            <li>Scalar reward — gaze replaces a human rater</li>
+            <li>Writes: <strong>complexity, format, topics</strong></li>
+            <li>Loop closes in <strong>under one second</strong></li>
+          </ul>
         </div>
       </div>
 
-      <div class="agent-card">
-        <div class="agent-card-band" style="background: linear-gradient(90deg, var(--purple), var(--purple-m))"></div>
-        <div class="agent-card-header">
+      <div class="agent-card" style="animation-delay:.15s">
+        <div class="agent-band" style="background:linear-gradient(90deg,#7c3aed,#c4b5fd)"></div>
+        <div class="agent-header">
           <div class="agent-timing timing-purple">🔁 Session end · RSI</div>
+          <span class="agent-emoji">🧠</span>
           <div class="agent-name">Meta-Agent</div>
           <div class="agent-file">services/meta_agent.py</div>
         </div>
         <div class="agent-body">
-          <div class="agent-point">
-            <div class="agent-point-dot" style="background:var(--purple)"></div>
-            <div class="agent-point-text">Triggered by <strong>POST /session/end</strong>. Fetches the full session from MongoDB — every turn, every gaze event, every reward score.</div>
-          </div>
-          <div class="agent-point">
-            <div class="agent-point-dot" style="background:var(--purple)"></div>
-            <div class="agent-point-text">Sends everything to <strong>Google Antigravity</strong> for deep pattern analysis. Catches higher-order signals the per-turn agent misses across the whole trajectory.</div>
-          </div>
-          <div class="agent-point">
-            <div class="agent-point-dot" style="background:var(--purple)"></div>
-            <div class="agent-point-text">Writes <strong>prospective_flags</strong> like <code style="font-family:JetBrains Mono;font-size:11px">{topic:"transformers", action:"use_analogy"}</code> to MongoDB. The Prompt Agent loads them before the next session even begins.</div>
-          </div>
-          <div class="code-snip">
-<span class="ch-purple">Antigravity</span> → JSON analysis
-→ <span class="ch-green">update_user</span>(profile_updates)
-→ <span class="ch-green">add_prospective_flag</span>(flags)
-<span class="ch-muted"># next session starts pre-adapted</span>
-          </div>
+          <ul class="agent-ul pu">
+            <li>Triggered by <strong>POST /session/end</strong></li>
+            <li>Full session → <strong>Google Antigravity</strong></li>
+            <li>Deep pattern analysis across all turns</li>
+            <li>Writes <strong>prospective_flags</strong> for next session</li>
+            <li>Next session starts <strong>pre-adapted</strong></li>
+          </ul>
         </div>
       </div>
-
     </div>
   </div>
 
   <div class="divider"></div>
 
-  <!-- ── SECTION 3: TURN-BY-TURN LOOP ── -->
+  <!-- ══ 3. MEMORY ══ -->
   <div class="section">
     <div class="section-header">
       <div class="section-num">3</div>
       <div>
-        <div class="section-title">The Turn-by-Turn Loop</div>
-        <div class="section-sub">Six steps that execute on every single message</div>
+        <div class="section-title">Six-Layer Cognitive Memory</div>
+        <div class="section-sub">Milliseconds to permanent — modeled on human memory</div>
       </div>
     </div>
 
-    <div class="loop-grid">
-      <div class="loop-card" style="animation-delay:0.05s">
-        <div class="loop-card-top" style="background:var(--blue)"></div>
-        <div class="loop-card-step">Step 1 · Frontend</div>
-        <div class="loop-card-title">
-          <div class="loop-card-icon" style="background:var(--blue-l)">👁️</div>
-          User Reads Response
-        </div>
-        <div class="loop-card-desc">WebGazer streams raw (x, y) at ~30Hz. Dynamic EMA smoothing adapts alpha based on gaze velocity — micro-fixations get α=0.02, saccades get α=0.4.</div>
-        <div class="code-snip">webgazer.setGazeListener(<br>&nbsp;&nbsp;(data) =&gt; onGazeUpdate(data.x, data.y)<br>)<br><span class="ch-muted">// α adapts per distance</span></div>
+    <div class="memory-grid">
+      <div class="memory-item" style="animation-delay:.05s">
+        <div class="mem-num" style="background:var(--blue-l);color:var(--blue)">1</div>
+        <div class="mem-name">Sensory Memory</div>
+        <ul class="mem-list"><li>Raw WebGazer stream — ms lifetime</li><li><strong>Never stored.</strong> Discarded after EMA</li></ul>
+        <div class="mem-code">{ x: 432, y: 210 } → smoothed → gone</div>
+      </div>
+      <div class="memory-item" style="animation-delay:.10s">
+        <div class="mem-num" style="background:var(--cyan-l);color:var(--cyan)">2</div>
+        <div class="mem-name">Working Memory</div>
+        <ul class="mem-list"><li>Live React refs — survives re-renders</li><li><strong>Lost on refresh.</strong> zoneLog, sessionId</li></ul>
+        <div class="mem-code">zoneLog.current = { zone_1: [t1, t2] }</div>
+      </div>
+      <div class="memory-item" style="animation-delay:.15s">
+        <div class="mem-num" style="background:var(--yellow-l);color:var(--yellow)">3</div>
+        <div class="mem-name">Episodic Memory</div>
+        <ul class="mem-list"><li>MongoDB <strong>episodes</strong> — per-turn logs</li><li>Read by meta-agent at session end</li></ul>
+        <div class="mem-code">{ turn: 3, reward: −0.5, gaze: […] }</div>
+      </div>
+      <div class="memory-item" style="animation-delay:.20s">
+        <div class="mem-num" style="background:var(--purple-l);color:var(--purple)">4</div>
+        <div class="mem-name">Semantic Memory</div>
+        <ul class="mem-list"><li>MongoDB <strong>users</strong> — survives all sessions</li><li><strong>Source of truth</strong> for Prompt Agent</li></ul>
+        <div class="mem-code">{ complexity: 4, format: "bullets" }</div>
+      </div>
+      <div class="memory-item" style="animation-delay:.25s">
+        <div class="mem-num" style="background:var(--green-l);color:var(--green)">5</div>
+        <div class="mem-name">Procedural Memory</div>
+        <ul class="mem-list"><li>Fixed rules in reward.py / prompt_builder.py</li><li><strong>Never updated at runtime</strong></li></ul>
+        <div class="mem-code">confusion → simplify · skipped → shorten</div>
       </div>
 
-      <div class="loop-card" style="animation-delay:0.10s">
-        <div class="loop-card-top" style="background:var(--cyan)"></div>
-        <div class="loop-card-step">Step 2 · Frontend</div>
-        <div class="loop-card-title">
-          <div class="loop-card-icon" style="background:var(--cyan-l)">🎯</div>
-          Gaze → Zone Mapping
-        </div>
-        <div class="loop-card-desc"><code style="font-family:JetBrains Mono;font-size:11px">elementFromPoint(x, y)</code> maps smoothed coordinates to <code style="font-family:JetBrains Mono;font-size:11px">data-zone</code> paragraph spans and individual word spans (<code style="font-family:JetBrains Mono;font-size:11px">zone_0_w4</code>).</div>
-        <div class="code-snip"><span class="ch-cyan">zone_0</span> <span class="ch-muted">← paragraph</span><br><span class="ch-cyan">zone_0_w4</span> <span class="ch-muted">← word "neural"</span><br>zoneLog[zone].push(timestamp)</div>
-      </div>
-
-      <div class="loop-card" style="animation-delay:0.15s">
-        <div class="loop-card-top" style="background:var(--yellow)"></div>
-        <div class="loop-card-step">Step 3 · Frontend → Backend</div>
-        <div class="loop-card-title">
-          <div class="loop-card-icon" style="background:var(--yellow-l)">📡</div>
-          Gaze Events Sent
-        </div>
-        <div class="loop-card-desc">On next message, frontend classifies zone visit patterns into flags and sends them alongside the new message. The previous response ID links gaze to the content that was read.</div>
-        <div class="code-snip">{ zone: <span class="ch-orange">"zone_1"</span>,<br>&nbsp;&nbsp;visits: <span class="ch-green">4</span>,<br>&nbsp;&nbsp;flag: <span class="ch-red">"confusion"</span> }</div>
-      </div>
-
-      <div class="loop-card" style="animation-delay:0.20s">
-        <div class="loop-card-top" style="background:var(--red)"></div>
-        <div class="loop-card-step">Step 4 · Backend · reward.py</div>
-        <div class="loop-card-title">
-          <div class="loop-card-icon" style="background:var(--red-l)">⚡</div>
-          Reward Computed
-        </div>
-        <div class="loop-card-desc">Scalar reward averaged from all gaze events. Negative reward immediately triggers profile updates — the adaptation fires before Gemini is even called.</div>
-        <div class="code-snip">reward = <span class="ch-green">Σ</span>(scores) / n<br><span class="ch-blue">if</span> reward &lt; 0: complexity<span class="ch-red">↓</span><br><span class="ch-blue">if</span> reward &gt; 0: complexity<span class="ch-green">↑</span></div>
-      </div>
-
-      <div class="loop-card" style="animation-delay:0.25s">
-        <div class="loop-card-top" style="background:var(--green)"></div>
-        <div class="loop-card-step">Step 5 · Backend · MongoDB</div>
-        <div class="loop-card-title">
-          <div class="loop-card-icon" style="background:var(--green-l)">🗄️</div>
-          Profile + Episode Written
-        </div>
-        <div class="loop-card-desc">User semantic profile updated in <code style="font-family:JetBrains Mono;font-size:11px">users</code> collection. Full episode logged to <code style="font-family:JetBrains Mono;font-size:11px">episodes</code> collection for the meta-agent to read at session end.</div>
-        <div class="code-snip">users[<span class="ch-cyan">"demo_user"</span>].<span class="ch-green">$set</span>:<br>&nbsp;&nbsp;complexity_score: <span class="ch-green">4</span><br>&nbsp;&nbsp;topics_to_simplify: <span class="ch-orange">["RSI"]</span></div>
-      </div>
-
-      <div class="loop-card" style="animation-delay:0.30s">
-        <div class="loop-card-top" style="background:var(--purple)"></div>
-        <div class="loop-card-step">Step 6 · Backend · Gemini</div>
-        <div class="loop-card-title">
-          <div class="loop-card-icon" style="background:var(--purple-l)">✨</div>
-          Adapted Response
-        </div>
-        <div class="loop-card-desc">System prompt rebuilt from the just-updated profile. Gemini generates a response calibrated to this user's exact reading state — different instructions from the turn before.</div>
-        <div class="code-snip"><span class="ch-purple">system_instruction</span> =<br>&nbsp;&nbsp;build_system_prompt(profile)<br>→ gemini-3.5-flash(contents)</div>
-      </div>
     </div>
   </div>
 
   <div class="divider"></div>
 
-  <!-- ── SECTION 4: MEMORY ── -->
+  <!-- ══ 4. REWARD ══ -->
   <div class="section">
     <div class="section-header">
       <div class="section-num">4</div>
       <div>
-        <div class="section-title">Six-Layer Cognitive Memory</div>
-        <div class="section-sub">Modeled on human memory architecture — from milliseconds to permanent</div>
-      </div>
-    </div>
-
-    <div class="memory-row">
-      <div class="memory-item">
-        <div class="memory-layer-num" style="background:var(--blue-l);color:var(--blue)">1</div>
-        <div class="memory-layer-name">Sensory Memory</div>
-        <div class="memory-layer-desc">Raw WebGazer stream. Millisecond lifetime. Discarded after EMA smoothing. Never stored anywhere.</div>
-        <div class="memory-layer-code">{ x: 432, y: 210, t: 1719481234 }<br>→ smoothed → discarded</div>
-      </div>
-      <div class="memory-item">
-        <div class="memory-layer-num" style="background:var(--cyan-l);color:var(--cyan)">2</div>
-        <div class="memory-layer-name">Working Memory</div>
-        <div class="memory-layer-desc">Live session state in React refs. Survives re-renders. Lost on page refresh. Chat messages persist via localStorage.</div>
-        <div class="memory-layer-code">zoneLog.current = { zone_1: [t1, t2] }<br>sessionId.current, lastResponseId</div>
-      </div>
-      <div class="memory-item">
-        <div class="memory-layer-num" style="background:var(--yellow-l);color:var(--yellow)">3</div>
-        <div class="memory-layer-name">Episodic Memory</div>
-        <div class="memory-layer-desc">Per-turn event logs in MongoDB <code style="font-family:JetBrains Mono;font-size:11px">episodes</code> collection. Grouped by session_id. Read by the meta-agent at session end.</div>
-        <div class="memory-layer-code">{ turn: 3, reward: −0.5,<br>&nbsp;&nbsp;gaze_events: [...], session_id: "s_abc" }</div>
-      </div>
-      <div class="memory-item">
-        <div class="memory-layer-num" style="background:var(--purple-l);color:var(--purple)">4</div>
-        <div class="memory-layer-name">Semantic Memory</div>
-        <div class="memory-layer-desc">Persistent user profile in MongoDB <code style="font-family:JetBrains Mono;font-size:11px">users</code> collection. Survives across all sessions. The source of truth for the Prompt Agent.</div>
-        <div class="memory-layer-code">{ complexity_score: 4, format: "bullets",<br>&nbsp;&nbsp;topics_to_simplify: ["attention"] }</div>
-      </div>
-      <div class="memory-item">
-        <div class="memory-layer-num" style="background:var(--green-l);color:var(--green)">5</div>
-        <div class="memory-layer-name">Procedural Memory</div>
-        <div class="memory-layer-desc">Adaptation rules hardcoded in <code style="font-family:JetBrains Mono;font-size:11px">reward.py</code> and <code style="font-family:JetBrains Mono;font-size:11px">prompt_builder.py</code>. The fixed logic that translates signal into behavior change. Never updated at runtime.</div>
-        <div class="memory-layer-code">confusion → simplify + bullets<br>skipped → shorten · smooth → deepen</div>
-      </div>
-      <div class="memory-item">
-        <div class="memory-layer-num" style="background:var(--orange-l);color:var(--orange)">6</div>
-        <div class="memory-layer-name">Prospective Memory</div>
-        <div class="memory-layer-desc">Future topic strategies written by Antigravity after pattern analysis. Applied proactively at the start of the next session — before any negative signal fires.</div>
-        <div class="memory-layer-code">{ topic: "transformers",<br>&nbsp;&nbsp;action: "use_analogy" } → next prompt</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="divider"></div>
-
-  <!-- ── SECTION 5: REWARD ── -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-num">5</div>
-      <div>
-        <div class="section-title">Implicit RLHF — The Reward Function</div>
-        <div class="section-sub">Gaze replaces human raters. No labels. No clicks. Reading behavior is the signal.</div>
+        <div class="section-title">Implicit RLHF — Reward Function</div>
+        <div class="section-sub">No labels · no clicks · reading behavior is the signal</div>
       </div>
     </div>
 
@@ -1138,43 +624,59 @@ reward = <span class="ch-green">Σ</span>(flag_scores) / n
       <div class="reward-card">
         <div class="reward-badge" style="background:var(--green-l);color:var(--green);border-color:#86efac">smooth</div>
         <div class="reward-score" style="color:var(--green)">+1.0</div>
-        <div class="reward-behavior">Eyes move steadily forward through the paragraph — fixations advance, no backtracking</div>
-        <div class="reward-action">↑ complexity_score<br>maintain or shift to prose</div>
+        <ul class="reward-ul">
+          <li>Eyes advance steadily forward</li>
+          <li>No backtracking detected</li>
+          <li><strong>↑ complexity_score</strong></li>
+          <li>Maintain format</li>
+        </ul>
       </div>
       <div class="reward-card">
         <div class="reward-badge" style="background:var(--red-l);color:var(--red);border-color:#fca5a5">confusion</div>
         <div class="reward-score" style="color:var(--red)">−0.5</div>
-        <div class="reward-behavior">Same zone re-read 3+ times in short succession — the user is stuck</div>
-        <div class="reward-action">↓ complexity_score<br>switch to bullets · flag topic</div>
+        <ul class="reward-ul">
+          <li>Zone re-read 3× expected time</li>
+          <li>User is stuck</li>
+          <li><strong>↓ complexity · switch to bullets</strong></li>
+          <li>Flag topic</li>
+        </ul>
       </div>
       <div class="reward-card">
         <div class="reward-badge" style="background:var(--orange-l);color:var(--orange);border-color:#fdba74">skim</div>
         <div class="reward-score" style="color:var(--orange)">−0.3</div>
-        <div class="reward-behavior">Rapid back-and-forth movement within a small vertical area — scanning, not reading</div>
-        <div class="reward-action">↓ density<br>more whitespace · shorter sentences</div>
+        <ul class="reward-ul">
+          <li>Read time &lt; 50% of expected</li>
+          <li>Scanning, not reading</li>
+          <li><strong>↓ density</strong></li>
+          <li>Shorten sentences</li>
+        </ul>
       </div>
       <div class="reward-card">
         <div class="reward-badge" style="background:var(--yellow-l);color:var(--yellow);border-color:#fde047">skipped</div>
         <div class="reward-score" style="color:var(--yellow)">−0.2</div>
-        <div class="reward-behavior">Zone never visited — eyes never landed here. User disengaged before reaching it.</div>
-        <div class="reward-action">↓ response length<br>front-load key information</div>
+        <ul class="reward-ul">
+          <li>Zone never visited</li>
+          <li>Disengaged before reaching it</li>
+          <li><strong>↓ response length</strong></li>
+          <li>Front-load key info</li>
+        </ul>
       </div>
     </div>
   </div>
 
   <div class="divider"></div>
 
-  <!-- ── SECTION 6: STACK + API ── -->
+  <!-- ══ 5. STACK ══ -->
   <div class="section">
     <div class="section-header">
-      <div class="section-num">6</div>
+      <div class="section-num">5</div>
       <div>
         <div class="section-title">Stack & API Contract</div>
-        <div class="section-sub">What's running and how the frontend and backend talk</div>
+        <div class="section-sub">What's running and how front and back talk</div>
       </div>
     </div>
 
-    <div class="stack-grid" style="margin-bottom:24px">
+    <div class="stack-grid">
       <div class="stack-card">
         <div class="stack-header">
           <div class="stack-icon" style="background:var(--blue-l)">⬡</div>
@@ -1183,9 +685,8 @@ reward = <span class="ch-green">Σ</span>(flag_scores) / n
         </div>
         <div class="stack-row"><span class="stack-key">Framework</span><span class="stack-val" style="color:var(--blue)">React 18 + Vite</span></div>
         <div class="stack-row"><span class="stack-key">Eye tracking</span><span class="stack-val" style="color:var(--blue)">WebGazer.js</span></div>
-        <div class="stack-row"><span class="stack-key">Gaze smoothing</span><span class="stack-val" style="color:var(--blue)">Dynamic EMA α: 0.02 → 0.4</span></div>
+        <div class="stack-row"><span class="stack-key">Gaze smoothing</span><span class="stack-val" style="color:var(--blue)">Dynamic EMA α 0.02→0.4</span></div>
         <div class="stack-row"><span class="stack-key">Heatmap</span><span class="stack-val" style="color:var(--blue)">CSS rgba on data-zone spans</span></div>
-        <div class="stack-row"><span class="stack-key">Session persistence</span><span class="stack-val" style="color:var(--blue)">localStorage + IndexedDB calibration</span></div>
       </div>
       <div class="stack-card">
         <div class="stack-header">
@@ -1195,36 +696,28 @@ reward = <span class="ch-green">Σ</span>(flag_scores) / n
         </div>
         <div class="stack-row"><span class="stack-key">Framework</span><span class="stack-val" style="color:var(--purple)">FastAPI + uvicorn</span></div>
         <div class="stack-row"><span class="stack-key">Chat LLM</span><span class="stack-val" style="color:var(--purple)">Gemini 3.5 Flash</span></div>
-        <div class="stack-row"><span class="stack-key">RSI agent</span><span class="stack-val" style="color:var(--purple)">Google Antigravity (Interactions API)</span></div>
-        <div class="stack-row"><span class="stack-key">RSI fallback</span><span class="stack-val" style="color:var(--purple)">Gemini 2.0 Pro</span></div>
-        <div class="stack-row"><span class="stack-key">Database</span><span class="stack-val" style="color:var(--purple)">MongoDB Atlas · focalpoint db</span></div>
+        <div class="stack-row"><span class="stack-key">RSI agent</span><span class="stack-val" style="color:var(--purple)">Google Antigravity</span></div>
+        <div class="stack-row"><span class="stack-key">Database</span><span class="stack-val" style="color:var(--purple)">MongoDB Atlas</span></div>
       </div>
     </div>
 
     <div class="api-grid">
       <div class="api-card">
-        <div class="api-header">
-          <span class="api-method">POST</span>
-          /chat — called on every message
-        </div>
+        <div class="api-header"><span class="api-method">POST</span>/chat — every message</div>
         <div class="api-code"><span class="c">// Request</span>
 {
   <span class="k">"user_id"</span>:              <span class="s">"demo_user"</span>,
   <span class="k">"session_id"</span>:           <span class="s">"s_1719481234_ab3f"</span>,
   <span class="k">"message"</span>:              <span class="s">"explain attention"</span>,
-  <span class="k">"history"</span>:             [...],
   <span class="k">"previous_response_id"</span>: <span class="s">"resp_abc"</span>,
   <span class="k">"gaze_events"</span>: [
-    { <span class="k">"zone"</span>: <span class="s">"zone_0"</span>, <span class="k">"visits"</span>: <span class="v">1</span>, <span class="k">"flag"</span>: <span class="s">"smooth"</span>    },
-    { <span class="k">"zone"</span>: <span class="s">"zone_1"</span>, <span class="k">"visits"</span>: <span class="v">5</span>, <span class="k">"flag"</span>: <span class="s">"confusion"</span> }
+    { <span class="k">"zone"</span>: <span class="s">"zone_0"</span>, <span class="k">"flag"</span>: <span class="s">"smooth"</span>    },
+    { <span class="k">"zone"</span>: <span class="s">"zone_1"</span>, <span class="k">"flag"</span>: <span class="s">"confusion"</span> }
   ]
 }</div>
       </div>
       <div class="api-card">
-        <div class="api-header">
-          <span class="api-method">POST</span>
-          /session/end — triggers RSI meta-agent
-        </div>
+        <div class="api-header"><span class="api-method">POST</span>/session/end — triggers RSI meta-agent</div>
         <div class="api-code"><span class="c">// Response from /chat</span>
 {
   <span class="k">"response_id"</span>:  <span class="s">"resp_xyz"</span>,
@@ -1234,9 +727,7 @@ reward = <span class="ch-green">Σ</span>(flag_scores) / n
     <span class="k">"complexity_score"</span>: <span class="v">4</span>,
     <span class="k">"preferred_format"</span>: <span class="s">"bullets"</span>
   }
-}
-<span class="c">// /session/end returns:</span>
-{ <span class="k">"insights"</span>: [...], <span class="k">"avg_reward"</span>: <span class="v">0.23</span>, <span class="k">"turns"</span>: <span class="v">7</span> }</div>
+}</div>
       </div>
     </div>
   </div>
@@ -1246,7 +737,7 @@ reward = <span class="ch-green">Σ</span>(flag_scores) / n
 <footer>
   <span>◎ <strong>FocalPoint</strong> · AIEWF 2026 Hackathon</span>
   <span>Implicit RLHF · RSI via Antigravity · 6-Layer Cognitive Memory</span>
-  <span>github.com/ypatodkar/FocalPoint</span>
+  <span>Built with Google Gemini + Antigravity</span>
 </footer>
 
 </body>

@@ -9,12 +9,16 @@
  * @returns {string|null} The line zone identifier (e.g., 'response_id:line_0') or null.
  */
 export function getZoneAtGaze(x, y) {
-  const el = document.elementFromPoint(x, y);
+  // Only Y matters — zones are horizontal paragraph strips.
+  // Fix X to the chat area center so X prediction errors don't cause missed zones.
+  const chatEl = document.getElementById('fp-chat-area');
+  const lookupX = chatEl
+    ? chatEl.getBoundingClientRect().left + chatEl.getBoundingClientRect().width / 2
+    : x;
+  const el = document.elementFromPoint(lookupX, y);
   if (el) {
     const zoneEl = el.closest('[data-zone]');
-    if (zoneEl) {
-      return zoneEl.getAttribute('data-zone');
-    }
+    if (zoneEl) return zoneEl.getAttribute('data-zone');
   }
   return null;
 }
@@ -27,25 +31,42 @@ export function getZoneAtGaze(x, y) {
  * @param {Object} zoneLog - Stable fixation timestamps per zone.
  * @returns {Array<{zone: string, visits: number, flag: string}>}
  */
-export function computeGazeEvents(allZones, zoneLog) {
+// Each fixation log entry represents one interval of stable gaze
+const LOG_INTERVAL_MS = 450;
+// Conservative silent reading speed: 200 wpm = 300ms per word
+// (range is 200–250 wpm, using lower end so slower readers aren't penalised)
+const MS_PER_WORD = (60 / 200) * 1000;
+
+/**
+ * Computes the expected reading time for a line in ms.
+ * Minimum is one log interval so a 1-word line isn't impossible to "pass".
+ */
+export function expectedReadMs(wordCount) {
+  return Math.max(wordCount * MS_PER_WORD, LOG_INTERVAL_MS);
+}
+
+/**
+ * Computes reading ratio: actual time spent / expected time to read.
+ * ratio < 0.5  → skimmed (too fast)
+ * ratio 0.5–2  → smooth (normal read)
+ * ratio > 2    → confusion (re-reading, stuck)
+ */
+export function readingRatio(visits, wordCount) {
+  if (visits === 0) return 0;
+  return (visits * LOG_INTERVAL_MS) / expectedReadMs(wordCount);
+}
+
+export function computeGazeEvents(allZones, zoneLog, zoneWordCounts = {}) {
   return allZones.map(zone => {
-    const timestamps = zoneLog[zone] || [];
-    const visits = timestamps.length;
+    const visits    = (zoneLog[zone] || []).length;
+    const wordCount = zoneWordCounts[zone] || 10;
 
-    if (visits === 0) {
-      return { zone, visits: 0, flag: 'skipped' };
-    }
+    if (visits === 0) return { zone, visits: 0, flag: 'skipped', word_count: wordCount };
 
-    // confusion: sustained fixation or repeated returns to the same zone.
-    if (visits >= 4) {
-      return { zone, visits, flag: 'confusion' };
-    }
+    const ratio = readingRatio(visits, wordCount);
 
-    // skim: one stable fixation means the zone was seen but not meaningfully read.
-    if (visits === 1) {
-      return { zone, visits, flag: 'skim' };
-    }
-
-    return { zone, visits, flag: 'smooth' };
+    if (ratio < 0.5)  return { zone, visits, flag: 'skim',      word_count: wordCount };
+    if (ratio <= 3.0) return { zone, visits, flag: 'smooth',    word_count: wordCount };
+    return                   { zone, visits, flag: 'confusion', word_count: wordCount };
   });
 }

@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Query
 from models import SaveProfileRequest, SaveSessionRequest, SessionEndRequest, UserProfileOut
 from db.mongo import get_db
-from db.users import get_user, update_user
+from db.users import get_user, update_user, DEFAULT_PROFILE
 from db.episodes import get_session_episodes
 from db.sessions import close_session
 from services.meta_agent import run_meta_agent
@@ -85,6 +85,14 @@ async def delete_session(session_id: str, user_id: str = Query(...)):
     if result.deleted_count != 1:
         raise HTTPException(status_code=404, detail=f"session not found: {session_id}")
     return {"id": session_id, "deleted": True}
+
+@router.post("/debug/reset-profile")
+async def reset_profile(user_id: str = Query(...)):
+    db = get_db()
+    db.users.delete_one({"_id": user_id})
+    db.episodes.delete_many({"user_id": user_id})
+    get_user(user_id)  # re-creates with DEFAULT_PROFILE
+    return {"reset": True, "user_id": user_id, "complexity_score": DEFAULT_PROFILE["complexity_score"]}
 
 @router.post("/session/end")
 async def end_session(req: SessionEndRequest):

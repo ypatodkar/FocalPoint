@@ -3,9 +3,10 @@ from typing import Any
 from typing import Literal
 
 class GazeEvent(BaseModel):
-    zone:   str
-    visits: int
-    flag:   Literal['smooth', 'confusion', 'skipped', 'skim']
+    zone:       str
+    visits:     int
+    flag:       Literal['smooth', 'confusion', 'skipped', 'skim']
+    word_count: int = 0
 
 class HistoryMessage(BaseModel):
     role:    Literal['user', 'assistant']
@@ -24,11 +25,12 @@ class UserProfileOut(BaseModel):
     preferred_format:  str
 
 class ChatResponse(BaseModel):
-    response_id:   str
-    text:          str
-    reward:        float | None
-    user_profile:  UserProfileOut
-    system_prompt: str
+    response_id:          str
+    text:                 str
+    reward:               float | None
+    user_profile:         UserProfileOut
+    system_prompt:        str
+    follow_up_questions:  list[str] = []
 
 class SessionEndRequest(BaseModel):
     user_id:    str

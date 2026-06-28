@@ -8,10 +8,12 @@ from db.sessions import increment_turn, start_session
 from services.reward import compute_reward, update_profile_from_reward
 from services.prompt_builder import build_system_prompt
 import services.gemini as gemini_svc
+from services.gemini import generate_follow_up_questions
 
-def _generate(system_prompt: str, message: str, history: list[dict] = None) -> str:
+def _generate(system_prompt: str, message: str, history: list[dict] = None, complexity: int = 5) -> str:
     try:
-        return gemini_svc.generate_response(system_prompt, message, history)
+        max_tokens = 4096 if complexity >= 8 else 1024
+        return gemini_svc.generate_response(system_prompt, message, history, max_tokens=max_tokens)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Gemini generation failed: {e}") from e
 
@@ -57,18 +59,21 @@ async def chat(req: ChatRequest):
     system_prompt = build_system_prompt(user, req.message)
 
     history = [{"role": m.role, "content": m.content} for m in req.history]
-    text    = _generate(system_prompt, req.message, history)
+    text    = _generate(system_prompt, req.message, history, complexity=user.get("complexity_score", 5))
     response_id = str(uuid.uuid4())
     if req.session_id:
         increment_turn(req.session_id)
 
+    follow_ups = generate_follow_up_questions(req.message, text)
+
     return ChatResponse(
-        response_id  = response_id,
-        text         = text,
-        reward       = reward,
-        user_profile = UserProfileOut(
+        response_id          = response_id,
+        text                 = text,
+        reward               = reward,
+        user_profile         = UserProfileOut(
             complexity_score = user.get("complexity_score", 5),
             preferred_format = user.get("preferred_format", "prose"),
         ),
-        system_prompt = system_prompt,
+        system_prompt        = system_prompt,
+        follow_up_questions  = follow_ups,
     )

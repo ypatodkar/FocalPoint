@@ -1,9 +1,9 @@
 from .mongo import get_db
 
 DEFAULT_PROFILE = {
-    "complexity_score":    5,
+    "complexity_score":    9,
     "preferred_format":    "prose",
-    "avg_words_read":      200,
+    "avg_words_read":      600,
     "reads_to_end":        True,
     "re_read_rate":        0.0,
     "topics_to_simplify":  [],

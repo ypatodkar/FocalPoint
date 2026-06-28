@@ -27,6 +27,11 @@ def compute_reward(gaze_events: list[GazeEvent]) -> float | None:
     if not gaze_events:
         return None
 
+    # If >70% of zones are skipped the user wasn't reading — calibration noise, ignore.
+    skipped_ratio = sum(1 for e in gaze_events if e.flag == "skipped") / len(gaze_events)
+    if skipped_ratio > 0.7:
+        return None
+
     scores = []
     for e in gaze_events:
         base = FLAG_SCORES.get(e.flag, 0)
@@ -43,6 +48,12 @@ def update_profile_from_reward(
 ) -> dict:
     updates = {}
     score = profile.get("complexity_score", 5)
+
+    # Same calibration-noise guard: if reward was suppressed, skip profile updates too
+    if gaze_events:
+        skipped_ratio = sum(1 for e in gaze_events if e.flag == "skipped") / len(gaze_events)
+        if skipped_ratio > 0.7:
+            return updates
 
     # Complexity: move by 0.5 steps and require consistent signal before crossing integer
     # This prevents wild bouncing on a single turn
@@ -76,12 +87,13 @@ def update_profile_from_reward(
         updates["re_read_rate"] = round(len(confusion_zones) / len(gaze_events), 2)
 
     # Estimate words read from zones that were not skipped (EMA to smooth noise)
-    read_zones = {
-        e.zone for e in gaze_events
+    # Use real word_count from each event (sent by frontend); fall back to 40 if missing (old data)
+    read_events = [
+        e for e in gaze_events
         if e.flag in ("smooth", "confusion", "skim") and "_w" not in e.zone
-    }
-    if read_zones:
-        estimated = len(read_zones) * 30
+    ]
+    if read_events:
+        estimated = sum(e.word_count if e.word_count > 0 else 40 for e in read_events)
         current   = profile.get("avg_words_read", 200)
         updates["avg_words_read"] = round(current * 0.7 + estimated * 0.3)
 

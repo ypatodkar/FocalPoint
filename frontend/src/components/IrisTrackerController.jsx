@@ -1,21 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Camera, CameraOff, Play, RefreshCw, Sparkles } from 'lucide-react';
 
-const CALIBRATION_POINTS = [
-  { id: 1, top: 10, left: 10 },
-  { id: 2, top: 10, left: 50 },
-  { id: 3, top: 10, left: 90 },
-  { id: 4, top: 30, left: 25 },
-  { id: 5, top: 30, left: 75 },
-  { id: 6, top: 50, left: 10 },
-  { id: 7, top: 50, left: 50 },
-  { id: 8, top: 50, left: 90 },
-  { id: 9, top: 70, left: 25 },
-  { id: 10, top: 70, left: 75 },
-  { id: 11, top: 90, left: 10 },
-  { id: 12, top: 90, left: 50 },
-  { id: 13, top: 90, left: 90 },
+// Built dynamically from the chat area bounds at calibration start — see buildCalibrationPoints()
+const FALLBACK_CALIBRATION_POINTS = [
+  { id: 1, top: 10, left: 20 }, { id: 2, top: 10, left: 50 }, { id: 3, top: 10, left: 80 },
+  { id: 4, top: 35, left: 28 }, { id: 5, top: 35, left: 72 },
+  { id: 6, top: 50, left: 20 }, { id: 7, top: 50, left: 50 }, { id: 8, top: 50, left: 80 },
+  { id: 9, top: 65, left: 28 }, { id: 10, top: 65, left: 72 },
+  { id: 11, top: 88, left: 20 }, { id: 12, top: 88, left: 50 }, { id: 13, top: 88, left: 80 },
 ];
+
+function buildCalibrationPoints() {
+  // Full-screen grid so the model gets a good fit across the entire eye movement range.
+  // X is ignored at prediction time — only Y is used for zone lookup.
+  return [
+    { id: 1,  top:  5, left:  5 }, { id: 2,  top:  5, left: 50 }, { id: 3,  top:  5, left: 95 },
+    { id: 4,  top: 25, left: 20 }, { id: 5,  top: 25, left: 80 },
+    { id: 6,  top: 50, left:  5 }, { id: 7,  top: 50, left: 50 }, { id: 8,  top: 50, left: 95 },
+    { id: 9,  top: 75, left: 20 }, { id: 10, top: 75, left: 80 },
+    { id: 11, top: 95, left:  5 }, { id: 12, top: 95, left: 50 }, { id: 13, top: 95, left: 95 },
+  ];
+}
 
 const CLICKS_PER_POINT = 4;
 const MODEL_VERSION = 2;
@@ -253,6 +258,7 @@ export default function IrisTrackerController({
   const featureHistory = useRef([]);
   const latestModel = useRef(null);
   const calibrationSamples = useRef([]);
+  const calVideoRef = useRef(null);
   const pointFilter = useRef(makeOneEuroFilter());
   const running = useRef(false);
 
@@ -261,6 +267,7 @@ export default function IrisTrackerController({
   const [cameraStopped, setCameraStopped] = useState(false);
   const [clickCounts, setClickCounts] = useState({});
   const [permissionError, setPermissionError] = useState(null);
+  const [calibrationPoints, setCalibrationPoints] = useState(FALLBACK_CALIBRATION_POINTS);
 
   useEffect(() => {
     const savedModel = localStorage.getItem(MODEL_KEY);
@@ -280,6 +287,13 @@ export default function IrisTrackerController({
     // stopCamera reads refs directly and is safe for unmount cleanup.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (calibrating && calVideoRef.current && streamRef.current) {
+      calVideoRef.current.srcObject = streamRef.current;
+      calVideoRef.current.play().catch(() => {});
+    }
+  }, [calibrating]);
 
   const ensureFaceMesh = async () => {
     if (!window.FaceMesh) {
@@ -399,10 +413,12 @@ export default function IrisTrackerController({
     pointFilter.current = makeOneEuroFilter();
     localStorage.removeItem(MODEL_KEY);
     setTrackingActive(false);
+    const points = buildCalibrationPoints();
+    setCalibrationPoints(points);
     setCalibrating(true);
     setCalibrationProgress(0);
     const counts = {};
-    CALIBRATION_POINTS.forEach(point => { counts[point.id] = 0; });
+    points.forEach(point => { counts[point.id] = 0; });
     setClickCounts(counts);
   };
 
@@ -467,7 +483,7 @@ export default function IrisTrackerController({
     const updated = { ...clickCounts, [point.id]: currentClicks + 1 };
     setClickCounts(updated);
     const total = Object.values(updated).reduce((a, b) => a + b, 0);
-    const required = CALIBRATION_POINTS.length * CLICKS_PER_POINT;
+    const required = calibrationPoints.length * CLICKS_PER_POINT;
     setCalibrationProgress((total / required) * 100);
 
     if (total >= required) {
@@ -546,23 +562,46 @@ export default function IrisTrackerController({
           alignItems: 'center', justifyContent: 'center',
           pointerEvents: 'auto',
         }}>
-          <div style={{
-            textAlign: 'center', maxWidth: '520px',
-            background: 'var(--bg-app)',
-            border: '1px solid var(--border)',
-            padding: '2rem', borderRadius: 'var(--radius-lg)',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-            marginBottom: '2rem', zIndex: 100000,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
-              <Sparkles size={32} style={{ color: 'var(--accent-teal)' }} />
+          {/* Card only shown before first click */}
+          {Object.keys(clickCounts).length === 0 && (
+            <div style={{
+              textAlign: 'center', maxWidth: '420px',
+              background: 'var(--bg-app)',
+              border: '1px solid var(--border)',
+              padding: '1.5rem', borderRadius: 'var(--radius-lg)',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+              marginBottom: '2rem', zIndex: 100000,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
+                <Sparkles size={28} style={{ color: 'var(--accent-teal)' }} />
+              </div>
+              <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: 700 }}>Calibrate Iris Tracking</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.5', marginBottom: '1rem' }}>
+                Sit arm's length from your camera. Look at each dot and click it {CLICKS_PER_POINT} times. Keep your head still — move only your eyes.
+              </p>
+              {/* Camera preview — only before calibration starts so it doesn't pull focus from the dots */}
+              <div style={{
+                position: 'relative', width: '100%', aspectRatio: '4/3',
+                borderRadius: '10px', overflow: 'hidden',
+                background: '#000', border: '1px solid var(--border)',
+              }}>
+                <video
+                  ref={calVideoRef}
+                  autoPlay muted playsInline
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }}
+                />
+                <div style={{
+                  position: 'absolute', bottom: 6, left: 8,
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  background: 'rgba(0,0,0,0.55)', padding: '2px 8px', borderRadius: 99,
+                }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#81c995', animation: 'pulse-green 2s infinite' }} />
+                  <span style={{ fontSize: '0.6rem', color: '#81c995', fontWeight: 700 }}>LIVE — click a dot to begin</span>
+                </div>
+              </div>
             </div>
-            <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: 700 }}>Calibrate Iris Tracking</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.5', margin: 0 }}>
-              Look at each dot and click it {CLICKS_PER_POINT} times. Keep your face centered so MediaPipe can read both irises.
-            </p>
-          </div>
-          {CALIBRATION_POINTS.map(point => {
+          )}
+          {calibrationPoints.map(point => {
             const clicks = clickCounts[point.id] || 0;
             const done = clicks >= CLICKS_PER_POINT;
             return (

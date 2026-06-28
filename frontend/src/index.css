@@ -55,6 +55,41 @@
   color-scheme: dark;
 }
 
+/* ── Light mode overrides ── */
+[data-theme="light"] {
+  --bg-app:      #f8f9fa;
+  --bg-sidebar:  #f1f3f4;
+  --bg-chat:     #ffffff;
+  --bg-input:    #f1f3f4;
+  --bg-user-msg: #e8f0fe;
+  --bg-hover:    #e8eaed;
+  --bg-active:   #d2e3fc;
+
+  --border:       rgba(0,0,0,0.10);
+  --border-light: rgba(0,0,0,0.06);
+
+  --text-primary:   #202124;
+  --text-secondary: #5f6368;
+  --text-muted:     #9aa0a6;
+
+  --accent:           #1a73e8;
+  --accent-hover:     #1557b0;
+  --accent-glow:      rgba(26,115,232,0.15);
+  --accent-teal:      #0097a7;
+  --accent-teal-glow: rgba(0,151,167,0.15);
+
+  --panel-bg:     #f1f3f4;
+  --panel-border: rgba(0,0,0,0.08);
+  --panel-text:   #202124;
+  --panel-muted:  #5f6368;
+  --panel-accent: #1a73e8;
+
+  color-scheme: light;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+
 *, *::before, *::after { box-sizing: border-box; }
 
 html, body {

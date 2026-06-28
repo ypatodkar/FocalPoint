@@ -10,28 +10,41 @@ def build_system_prompt(profile: dict, message: str = "") -> str:
         "You are a helpful, knowledgeable AI assistant.",
         "You adapt your communication style based on how the user reads your responses.",
         "Be direct and complete — answer what was asked fully.",
-        "Always write in short, distinct paragraphs separated by blank lines. Never write walls of text.",
+        "FORMATTING RULE: Break your response into paragraphs of 50–80 words each — substantial enough "
+        "to develop one idea fully. Separate every paragraph with a blank line. "
+        "Write as many paragraphs as needed to cover the topic fully — do not stop early.",
     ]
 
     # Format
     if fmt == "bullets":
         parts.append("Structure your responses with bullet points or numbered lists when presenting multiple ideas.")
+    elif score >= 8:
+        pass  # high complexity — no format constraint, let the length instruction drive it
     else:
         parts.append("Use clear, natural prose with paragraph breaks between each idea.")
 
     # Complexity / vocabulary
     if score <= 3:
-        parts.append("Use very simple language and short sentences. Avoid jargon entirely. Explain every term you use.")
+        parts.append("Use very simple language and very short sentences. Avoid jargon entirely. Explain every term.")
+        parts.append("Write in short, distinct paragraphs. Never write more than 3 sentences in a row without a line break.")
     elif score <= 5:
         parts.append("Use plain, accessible language. Avoid jargon unless necessary — define it when you use it.")
+        parts.append("Keep paragraphs short. Break ideas into separate paragraphs.")
     elif score <= 7:
-        parts.append("You can use moderate technical language. Assume a curious, intelligent non-expert reader.")
+        parts.append("Use moderate technical language. Assume a curious, intelligent non-expert reader.")
     else:
-        parts.append("Feel free to use technical depth and nuance. The user is comfortable with advanced concepts.")
+        parts.append(
+            "Write a long, rich, deeply detailed response — at least 5 full paragraphs. "
+            "Cover the topic thoroughly: background, mechanism, examples, implications, and nuance. "
+            "Do NOT summarise or give an overview. Write dense, expert-level prose without bullet points. "
+            "The user expects depth and detail — do not hold back."
+        )
 
     # Length calibrated to how much this user actually reads
     if not reads_to_end:
-        parts.append(f"IMPORTANT: Keep your response under {avg_words} words. This user stops reading before long responses end — front-load the key information.")
+        parts.append(f"IMPORTANT: Keep your response under {avg_words} words. This user stops reading before the end — front-load the key information.")
+    elif score >= 8:
+        parts.append("Target at least 350 words. Do not artificially shorten — the user reads long responses in full.")
     else:
         parts.append(f"Keep responses under {avg_words + 50} words unless the question genuinely requires more depth.")
 

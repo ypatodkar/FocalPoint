@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Eye, RefreshCw, SquarePen as PenSquare, Menu, X, MessageSquare } from 'lucide-react';
+import { Send, Eye, RefreshCw, SquarePen as PenSquare, Menu, X, MessageSquare, Sun, Moon, BarChart2 } from 'lucide-react';
+import MetricsDrawer from './components/MetricsDrawer';
 import ResponseDisplay from './components/ResponseDisplay';
 import RightPanel from './components/RightPanel';
 import { getZoneAtGaze, computeGazeEvents } from './utils/gazeUtils';
@@ -29,6 +30,20 @@ const GAZE_TICK_INTERVAL_MS = 120;
 
 const genId = () => `s_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
+function relativeTime(ts) {
+  if (!ts) return '';
+  const diff = Date.now() - ts;
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return 'Yesterday';
+  if (d < 7)  return `${d}d ago`;
+  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
 function median(values) {
   const sorted = [...values].sort((a, b) => a - b);
   return sorted[Math.floor(sorted.length / 2)];
@@ -41,16 +56,20 @@ export default function App() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastResponseId, setLastResponseId] = useState(null);
-  const [userProfile, setUserProfile] = useState({ complexity_score: 5, preferred_format: 'prose' });
+  const [userProfile, setUserProfile] = useState({ complexity_score: 9, preferred_format: 'prose' });
   const [lastReward, setLastReward] = useState(null);
   const [systemPrompt, setSystemPrompt] = useState('');
   const [backendError, setBackendError] = useState(null);
 
+  const [lightMode, setLightMode] = useState(() => localStorage.getItem('fp-theme') === 'light');
+  const [metricsOpen, setMetricsOpen] = useState(false);
+  const [rewardHistory, setRewardHistory] = useState([]);
   const [trackingActive, setTrackingActive] = useState(false);
   const [calibrationProgress, setCalibrationProgress] = useState(null);
   const [heatmapEnabled, setHeatmapEnabled] = useState(true);
   const [currentLineId, setCurrentLineId] = useState(null);
   const [gazeTick, setGazeTick] = useState(0);
+  const [followUpQuestions, setFollowUpQuestions] = useState([]);
 
   const activeSessionId = useRef(null);
   const sessionId = useRef(genId());
@@ -63,7 +82,14 @@ export default function App() {
   const gazeDotRef = useRef(null);
   const trackingActiveRef = useRef(false);
   const loadingRef = useRef(false);
+  const typingRef = useRef(false);
   const dbLoaded = useRef(false);
+
+  useEffect(() => {
+    const theme = lightMode ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('fp-theme', theme);
+  }, [lightMode]);
 
   useEffect(() => { trackingActiveRef.current = trackingActive; }, [trackingActive]);
   useEffect(() => { loadingRef.current = loading; }, [loading]);
@@ -97,12 +123,17 @@ export default function App() {
     })();
   }, []);
 
+  // Only auto-scroll when the user themselves sends a message (role === 'user'),
+  // not when the assistant response arrives — let the user read from where they are.
+  const lastMessage = messages[messages.length - 1];
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+    if (lastMessage?.role === 'user') {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   const handleGazeUpdate = useCallback((x, y, timestamp) => {
-    if (!trackingActiveRef.current || loadingRef.current) return;
+    if (!trackingActiveRef.current || loadingRef.current || typingRef.current) return;
     if (!Number.isFinite(x) || !Number.isFinite(y)) return;
 
     const currentTime = timestamp || Date.now();
@@ -178,7 +209,7 @@ export default function App() {
       const title = firstUser
         ? firstUser.text.slice(0, 40) + (firstUser.text.length > 40 ? '…' : '')
         : 'Chat';
-      const session = { id: sessionId.current, title, messages };
+      const session = { id: sessionId.current, title, messages, createdAt: Date.now(), turnCount: 1, lastReward: null };
       setSessions(prev => [session, ...prev].slice(0, 20));
       await saveSessionToDB(session);
     }
@@ -217,6 +248,7 @@ export default function App() {
     const text = text_ || input;
     if (!text.trim() || loading) return;
 
+    typingRef.current = false;
     setInput('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setLoading(true);
@@ -224,9 +256,14 @@ export default function App() {
     const previousResponseEl = lastResponseId
       ? document.getElementById(`response-${lastResponseId}`)
       : null;
-    const currentZones = Array.from(previousResponseEl?.querySelectorAll('[data-zone]') || [])
-      .map(el => el.getAttribute('data-zone'));
-    const gazeEvents = computeGazeEvents(currentZones, zoneLog.current);
+    const zoneEls = Array.from(previousResponseEl?.querySelectorAll('[data-zone]') || []);
+    const currentZones = zoneEls.map(el => el.getAttribute('data-zone'));
+    const zoneWordCounts = {};
+    zoneEls.forEach(el => {
+      const zone = el.getAttribute('data-zone');
+      zoneWordCounts[zone] = (el.textContent || '').trim().split(/\s+/).filter(Boolean).length;
+    });
+    const gazeEvents = computeGazeEvents(currentZones, zoneLog.current, zoneWordCounts);
 
     activeSessionId.current = null;
     const newUserMsg = { role: 'user', text };
@@ -246,7 +283,11 @@ export default function App() {
       setLastResponseId(data.response_id);
       setUserProfile(data.user_profile);
       setLastReward(data.reward);
+      if (data.reward !== null && data.reward !== undefined) {
+        setRewardHistory(prev => [...prev, data.reward].slice(-20));
+      }
       setSystemPrompt(data.system_prompt || '');
+      setFollowUpQuestions(data.follow_up_questions || []);
       setBackendError(null);
       setMessages(updatedMessages);
 
@@ -260,7 +301,14 @@ export default function App() {
       const title = firstUser
         ? firstUser.text.slice(0, 40) + (firstUser.text.length > 40 ? '…' : '')
         : 'Chat';
-      const session = { id: sessionId.current, title, messages: updatedMessages };
+      const turnCount = updatedMessages.filter(m => m.role === 'user').length;
+      const existing = sessions.find(s => s.id === sessionId.current);
+      const session = {
+        id: sessionId.current, title, messages: updatedMessages,
+        createdAt: existing?.createdAt || Date.now(),
+        turnCount,
+        lastReward: data.reward ?? null,
+      };
       await saveSessionToDB(session);
       setSessions(prev => {
         const withoutCurrent = prev.filter(s => s.id !== session.id);
@@ -337,12 +385,37 @@ export default function App() {
                       className={`sidebar-btn ${activeSessionId.current === s.id ? 'active' : ''}`}
                       onClick={() => loadSession(s)}
                       title={s.title}
-                      style={{ paddingRight: '28px', width: '100%' }}
+                      style={{ paddingRight: '28px', width: '100%', flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}
                     >
-                      <MessageSquare size={15} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                        {s.title}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                        <MessageSquare size={15} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                          {s.title}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', paddingLeft: '23px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                          {relativeTime(s.createdAt)}
+                        </span>
+                        {s.turnCount > 0 && (
+                          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                            · {s.turnCount} turn{s.turnCount !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {s.lastReward !== null && s.lastReward !== undefined && (
+                          <span style={{
+                            fontSize: '0.6rem', fontWeight: 700, padding: '0px 5px', borderRadius: '99px',
+                            background: s.lastReward > 0.3
+                              ? 'rgba(129,201,149,0.18)' : s.lastReward >= 0
+                                ? 'rgba(253,214,99,0.18)' : 'rgba(242,139,130,0.18)',
+                            color: s.lastReward > 0.3
+                              ? 'var(--success)' : s.lastReward >= 0
+                                ? 'var(--warning)' : 'var(--danger)',
+                          }}>
+                            {s.lastReward >= 0 ? '+' : ''}{s.lastReward.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
                     </button>
                     <button
                       onClick={(e) => deleteSession(e, s.id)}
@@ -387,7 +460,7 @@ export default function App() {
       </div>
 
       {/* ── MAIN CHAT AREA ── */}
-      <div className="chat-area">
+      <div className="chat-area" id="fp-chat-area">
 
         {/* Top bar */}
         <div className="topbar">
@@ -400,6 +473,20 @@ export default function App() {
             {isEmptyState ? 'FocalPoint' : sessions.find(s => s.id === activeSessionId.current)?.title || 'FocalPoint'}
           </span>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              className="icon-btn"
+              onClick={() => setMetricsOpen(true)}
+              title="Open metrics"
+            >
+              <BarChart2 size={18} />
+            </button>
+            <button
+              className="icon-btn"
+              onClick={() => setLightMode(m => !m)}
+              title={lightMode ? 'Switch to dark mode' : 'Switch to light mode'}
+            >
+              {lightMode ? <Moon size={18} /> : <Sun size={18} />}
+            </button>
             {backendError && (
               <span style={{
                 fontSize: '0.72rem', fontWeight: 600, padding: '3px 10px', borderRadius: '99px',
@@ -517,6 +604,8 @@ export default function App() {
               onInput={handleTextareaInput}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
+              onFocus={() => { typingRef.current = true; }}
+              onBlur={() => { typingRef.current = false; }}
               placeholder={trackingActive
                 ? 'Ask anything — your gaze shapes the response…'
                 : 'Ask FocalPoint anything…'}
@@ -555,6 +644,8 @@ export default function App() {
         systemPrompt={systemPrompt}
         userProfile={userProfile}
         gazeTick={gazeTick}
+        followUpQuestions={followUpQuestions}
+        onFollowUp={handleSend}
       />
 
       {trackingActive && (
@@ -564,6 +655,18 @@ export default function App() {
           aria-hidden="true"
         />
       )}
+
+      <MetricsDrawer
+        open={metricsOpen}
+        onClose={() => setMetricsOpen(false)}
+        userProfile={userProfile}
+        rewardHistory={rewardHistory}
+        onReset={() => {
+          setUserProfile({ complexity_score: 9, preferred_format: 'prose' });
+          setRewardHistory([]);
+          setLastReward(null);
+        }}
+      />
 
       <style>{`
         @keyframes pulse-green {

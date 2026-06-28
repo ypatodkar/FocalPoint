@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Video, Eye, Terminal, Camera } from 'lucide-react';
-import GazeMirror from './GazeMirror';
+import { Video, Eye, Terminal, Camera, Lightbulb } from 'lucide-react';
 import SystemPromptPanel from './SystemPromptPanel';
 import IrisTrackerController from './IrisTrackerController';
 
@@ -18,6 +17,8 @@ export default function RightPanel({
   systemPrompt,
   userProfile,
   gazeTick,
+  followUpQuestions = [],
+  onFollowUp,
 }) {
   const videoSlotRef = useRef(null);
 
@@ -136,24 +137,55 @@ export default function RightPanel({
         </div>
       </div>
 
-      {/* ── Window 2: Word Highlight Mirror ── */}
+      {/* ── Window 2: Suggested Follow-ups ── */}
       <div className="panel-window">
         <div className="panel-header">
-          <Eye size={10} color="var(--panel-muted)" />
-          <span className="panel-title">Gaze Mirror</span>
-          {currentLineId && (
-            <span className="panel-badge badge-info" style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {currentLineId}
-            </span>
-          )}
+          <Lightbulb size={10} color="var(--panel-muted)" />
+          <span className="panel-title">Follow-up Questions</span>
         </div>
-        <div className="panel-body">
-          <GazeMirror
-            messages={messages}
-            currentLineId={currentLineId}
-            heatmapEnabled={heatmapEnabled}
-            gazeTick={gazeTick}
-          />
+        <div className="panel-body" style={{ overflow: 'auto', padding: '10px' }}>
+          {followUpQuestions.length === 0 ? (
+            <div style={{ color: 'var(--panel-muted)', fontSize: '0.7rem', textAlign: 'center', marginTop: '1rem', lineHeight: 1.5 }}>
+              Suggested questions will appear here after each response.
+            </div>
+          ) : (
+            followUpQuestions.map((q, i) => (
+              <button
+                key={i}
+                onClick={() => onFollowUp && onFollowUp(q)}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  background: 'rgba(138,180,248,0.07)',
+                  border: '1px solid var(--panel-border)',
+                  borderRadius: '8px',
+                  color: 'var(--panel-text)',
+                  fontSize: '0.72rem',
+                  lineHeight: 1.5,
+                  padding: '8px 10px',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s, border-color 0.15s',
+                  fontFamily: 'var(--font-sans)',
+                  whiteSpace: 'normal',
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
+                  marginBottom: '8px',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(138,180,248,0.15)';
+                  e.currentTarget.style.borderColor = 'var(--panel-accent)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(138,180,248,0.07)';
+                  e.currentTarget.style.borderColor = 'var(--panel-border)';
+                }}
+              >
+                {q}
+              </button>
+            ))
+          )}
         </div>
       </div>
 

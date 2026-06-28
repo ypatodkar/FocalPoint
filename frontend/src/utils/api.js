@@ -32,6 +32,10 @@ export async function apiRequest(path, options = {}) {
   return parseJsonResponse(response, path);
 }
 
+export async function resetDemoProfile(userId = 'demo_user') {
+  return apiRequest(`/debug/reset-profile?user_id=${encodeURIComponent(userId)}`, { method: 'POST' });
+}
+
 export async function sendChatMessage(message, previousResponseId, gazeEvents, history = [], sessionId = null) {
   return apiRequest('/chat', {
     method: 'POST',
